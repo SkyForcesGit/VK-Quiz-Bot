@@ -1,0 +1,11 @@
+{
+    "Members_VK_page_IDs": [],
+    "Admin_VK_pages_IDs": [],
+    "Members_answered_on_quiz_right": [],
+    "Members_answered_on_quiz": [],
+    "Members_scores": {},
+    "get_chat_first_start": true,
+    "start_function_first_start": true,
+    "Blitz_start": false,
+    "Current_ID_of_latest_quiz_message": 0
+}

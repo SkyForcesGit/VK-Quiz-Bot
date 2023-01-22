@@ -1,0 +1,48 @@
+{
+    "configs": {
+        "handler": {
+            "handlers": [
+                {
+                    "sink": "logs/handlers.log",
+                    "format": "[TIME: {time:YYYY-MM-DD at HH:mm:ss}] {level} | {message}",
+                    "level": "DEBUG",
+                    "serialize": false
+                }
+            ],
+            "extra": {"object": "Handler"}
+        },
+        "main_handler": {
+            "handlers": [
+                {
+                    "sink": "logs/handlers.log",
+                    "format": "[TIME: {time:YYYY-MM-DD at HH:mm:ss}] MAIN HANDLER | {level} | {message}",
+                    "level": "DEBUG",
+                    "serialize": false
+                }
+            ],
+            "extra": {"object": "MainHandler"}
+        },
+        "bot_question_messages_handler": {
+            "handlers": [
+                {
+                    "sink": "logs/handlers.log",
+                    "format": "[TIME: {time:YYYY-MM-DD at HH:mm:ss}] BOT QUESTION MESSAGES HANDLER | {level} | {message}",
+                    "level": "DEBUG",
+                    "serialize": false
+                }
+            ],
+            "extra": {"object": "BotQuestionMessagesHandler"}
+        },
+        "members_quiz_answers_handler": {
+            "handlers": [
+                {
+                    "sink": "logs/handlers.log",
+                    "format": "[TIME: {time:YYYY-MM-DD at HH:mm:ss}] BOT QUIZ ANSWERS HANDLER | {level} | {message}",
+                    "level": "DEBUG",
+                    "serialize": false
+                }
+            ],
+            "extra": {"object": "BotQuizAnswersHandler"}
+        }
+    }
+}

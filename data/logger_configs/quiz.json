@@ -1,0 +1,15 @@
+{
+    "config": {
+        "handlers": [
+            {
+                "sink": "logs/quiz.log",
+                "format": "[TIME: {time:YYYY-MM-DD at HH:mm:ss}] {level} | {message}",
+                "level": "DEBUG",
+                "serialize": false,
+                "compression": "zip",
+                "rotation": "1 day"
+            }
+        ],
+        "extra": {"object": "Quiz"}
+    }
+}

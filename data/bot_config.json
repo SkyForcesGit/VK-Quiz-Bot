@@ -1,0 +1,11 @@
+{
+    "VK_API_community_Access_Key": null,
+    "Lead_Admin_VK_ID": null,
+    "Chat_for_work_ID": null,
+    "Quiz_mode": "Normal",
+    "Time_on_quiz_round": null,
+    "Random_selection_for_quiz_questions": false,
+    "ignore_save_state": false,
+    "force_load_save_state": false,
+    "Debug_mode": true
+}

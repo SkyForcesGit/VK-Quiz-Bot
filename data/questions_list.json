@@ -1,0 +1,87 @@
+[
+    {
+        "id": 1,
+        "message": "question_1",
+        "keyboard_config": {
+            "onetime_mode": false,
+            "inline_mode": false,
+            "button_quantity": 4,
+            "button_name": ["answer_1", "answer_2", "answer_3", "answer_4"],
+            "button_color": ["PRIMARY", "PRIMARY", "PRIMARY", "PRIMARY"],
+            "button_answer_color": ["PRIMARY", "PRIMARY", "POSITIVE", "PRIMARY"],
+            "payload_list": [{"answer": false}, {"answer": false}, {"answer": true}, {"answer": false}]
+        },
+        "attachment": {
+            "photo": ["assets/attachments/1.jpg"]
+        },
+        "attach_type": ["photo"]
+    },
+    {
+        "id": 2,
+        "message": "question_2",
+        "keyboard_config": {
+            "onetime_mode": false,
+            "inline_mode": false,
+            "button_quantity": 4,
+            "button_name": ["answer_1", "answer_2", "answer_3", "answer_4"],
+            "button_color": ["PRIMARY", "PRIMARY", "PRIMARY", "PRIMARY"],
+            "button_answer_color": ["POSITIVE", "PRIMARY", "PRIMARY", "PRIMARY"],
+            "payload_list": [{"answer": true}, {"answer": false}, {"answer": false}, {"answer": false}]
+        },
+        "attachment": {
+            "photo": ["assets/attachments/2.jpg"]
+        },
+        "attach_type": ["photo"]
+    },
+    {
+        "id": 3,
+        "message": "question_3",
+        "keyboard_config": {
+            "onetime_mode": false,
+            "inline_mode": false,
+            "button_quantity": 4,
+            "button_name": ["answer_1", "answer_2", "answer_3", "answer_4"],
+            "button_color": ["PRIMARY", "PRIMARY", "PRIMARY", "PRIMARY"],
+            "button_answer_color": ["PRIMARY", "PRIMARY", "PRIMARY", "POSITIVE"],
+            "payload_list": [{"answer": false}, {"answer": false}, {"answer": false}, {"answer": true}]
+        },
+        "attachment": {
+            "photo": ["assets/attachments/3.jpg", "assets/attachments/3_2.jpg"]
+        },
+        "attach_type": ["photo"]
+    },
+	{
+        "id": 4,
+        "message": "question_4",
+        "keyboard_config": {
+            "onetime_mode": false,
+            "inline_mode": false,
+            "button_quantity": 4,
+            "button_name": ["answer_1", "answer_2", "answer_3", "answer_4"],
+            "button_color": ["PRIMARY", "PRIMARY", "PRIMARY", "PRIMARY"],
+            "button_answer_color": ["PRIMARY", "POSITIVE", "PRIMARY", "PRIMARY"],
+            "payload_list": [{"answer": false}, {"answer": true}, {"answer": false}, {"answer": false}]
+        },
+        "attachment": {
+            "photo": ["assets/attachments/3.jpg", "assets/attachments/3_2.jpg"]
+        },
+        "attach_type": ["photo"]
+    },
+	{
+        "id": 5,
+        "message": "question_5",
+        "keyboard_config": {
+            "onetime_mode": false,
+            "inline_mode": false,
+            "button_quantity": 4,
+            "button_name": ["answer_1", "answer_2", "answer_3", "answer_4"],
+            "button_color": ["PRIMARY", "PRIMARY", "PRIMARY", "PRIMARY"],
+            "button_answer_color": ["POSITIVE", "PRIMARY", "PRIMARY", "PRIMARY"],
+            "payload_list": [{"answer": true}, {"answer": false}, {"answer": false}, {"answer": false}]
+        },
+        "attachment": {
+            "photo": ["assets/attachments/2.jpg"]
+        },
+        "attach_type": ["photo"]
+    }
+]

@@ -1,0 +1,48 @@
+{
+    "configs": {
+        "listener": {
+            "handlers": [
+                {
+                    "sink": "logs/listeners.log",
+                    "format": "[TIME: {time:YYYY-MM-DD at HH:mm:ss}] {level} | {message}",
+                    "level": "DEBUG",
+                    "serialize": false
+                }
+            ],
+            "extra": {"object": "Listener"}
+        },
+        "main_listener": {
+            "handlers": [
+                {
+                    "sink": "logs/listeners.log",
+                    "format": "[TIME: {time:YYYY-MM-DD at HH:mm:ss}] MAIN LISTENER | {level} | {message}",
+                    "level": "DEBUG",
+                    "serialize": false
+                }
+            ],
+            "extra": {"object": "MainListener"}
+        },
+        "bot_answers_listener": {
+            "handlers": [
+                {
+                    "sink": "logs/listeners.log",
+                    "format": "[TIME: {time:YYYY-MM-DD at HH:mm:ss}] BOT ANSWERS LISTENER | {level} | {message}",
+                    "level": "DEBUG",
+                    "serialize": false
+                }
+            ],
+            "extra": {"object": "BotAnswersListener"}
+        },
+        "members_quiz_answers_listener": {
+            "handlers": [
+                {
+                    "sink": "logs/listeners.log",
+                    "format": "[TIME: {time:YYYY-MM-DD at HH:mm:ss}] BOT QUIZ ANSWERS LISTENER | {level} | {message}",
+                    "level": "DEBUG",
+                    "serialize": false
+                }
+            ],
+            "extra": {"object": "BotQuizAnswersListener"}
+        }
+    }
+}

@@ -1,0 +1,8 @@
+/logs/
+/data/temp_info.json
+/vkquizbot/__pycache__/
+/__pycache__/
+/.idea/
+/dump/save_state.bin
+.pylintrc
+/dump/*.flag
