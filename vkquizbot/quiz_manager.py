@@ -146,9 +146,9 @@ class QuizManager(UtilsInitDefault):
         if f"{file_name}.bin" in os.listdir("dump/"):
             dumped_data = self.__parent.data_manager.pickle_load(file_name)
 
-            if self._bot_config["ignore_save_state"]:
+            if self._bot_config["Ignore_save_state"]:
                 return None
-            if any(file.endswith(".flag") for file in os.listdir("dump/")) or self._bot_config["force_load_save_state"]:
+            if any(file.endswith(".flag") for file in os.listdir("dump/")) or self._bot_config["Force_load_save_state"]:
                 return dumped_data
             return None
         return None
@@ -169,15 +169,18 @@ class QuizManager(UtilsInitDefault):
                 winner_id = list(score_dict.keys())[list(score_dict.values()).index(max_score)]
                 winner_name = self.__parent.user_manager.get_user_name(winner_id)
                 self.__parent.messenger.send_message(f"{winner_name}, поздравляем с победой в конкурсе!" +
-                                                     f"\nВы набрали наибольшее количество баллов -- {max_score}!")
+                                                     f"\nВы набрали наибольшее количество баллов -- {max_score}!",
+                                                     {"empty_keyboard": True})
             else:
                 winner_name = self.__parent.user_manager.get_user_name(temp_info["Members_VK_page_IDs"][0])
                 self.__parent.messenger.send_message(f"{winner_name}, поздравляем с победой в конкурсе!" +
-                                                     '\nВы -- последний "выживший"!')
+                                                     '\nВы -- последний "выживший"!', {"empty_keyboard": True})
             if self._bot_config["Debug_mode"]:
                 playsound.playsound("assets/sounds/tada.wav")
         except ValueError:
-            self.__parent.messenger.send_message("А где победитель?")
+            if self._bot_config["Debug_mode"]:
+                playsound.playsound("assets/sounds/exclamation.wav")
+            self.__parent.messenger.send_message("А где победитель?", {"empty_keyboard": True})
 
     def __question_select(self, event: threading.Event | None = None) -> bool:
         """
@@ -296,6 +299,9 @@ class QuizManager(UtilsInitDefault):
         викторина должна быть завершена.
         """
         temp_info = self.__parent.data_manager.load_json("temp_info", self.__quiz_logger)
+
+        if self._bot_config["Debug_mode"]:
+            playsound.playsound("assets/sounds/exclamation.wav")
 
         if self._bot_config["Quiz_mode"] == "Blitz":
             match len(temp_info["Members_VK_page_IDs"]):

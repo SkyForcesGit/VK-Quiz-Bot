@@ -104,6 +104,7 @@ class BotCore:
         self._stop_event = threading.Event()
         self._quiz_thread = threading.Thread(target=None)
 
+    # pylint: disable=too-many-branches
     @staticmethod
     def __data_check() -> None:
         """
@@ -119,22 +120,43 @@ class BotCore:
 
         if not isinstance(__bot_config["VK_API_community_Access_Key"], str):
             raise TypeError("Ключ VK API должен быть строкой.")
-        if not isinstance(__bot_config["Group_ID"], int):
+
+        if isinstance(__bot_config["Group_ID"], int):
+            if __bot_config["Group_ID"] < 0:
+                raise ValueError("ID группы должен быть положительным числом.")
+        else:
             raise TypeError("ID группы должен иметь тип 'int'.")
-        if not isinstance(__bot_config["Lead_Admin_VK_ID"], int):
+
+        if isinstance(__bot_config["Lead_Admin_VK_ID"], int):
+            if __bot_config["Lead_Admin_VK_ID"] < 0:
+                raise ValueError("ID администратора бота должен быть положительным числом.")
+        else:
             raise TypeError("ID администратора бота должен иметь тип 'int'.")
-        if not isinstance(__bot_config["Chat_for_work_ID"], int):
+
+        if isinstance(__bot_config["Chat_for_work_ID"], int):
+            if __bot_config["Chat_for_work_ID"] < 0:
+                raise ValueError("ID рабочего чата должен быть положительным числом.")
+        else:
             raise TypeError("ID рабочего чата должен иметь тип 'int'.")
+
         if not __bot_config["Quiz_mode"] in ["Normal", "Blitz", "Score"]:
             raise ValueError("Бот работает только в двух режимах викторины: 'Normal', 'Score' и 'Blitz'.")
-        if not isinstance(__bot_config["Time_on_quiz_round"], int | float):
+
+        if isinstance(__bot_config["Time_on_quiz_round"], int | float):
+            if __bot_config["Time_on_quiz_round"] < 0:
+                raise ValueError("Количество времени на раунд викторины должно быть положительным числом.")
+        else:
             raise TypeError("Количество времени на раунд викторины должно иметь тип 'int' или 'float'.")
+
         if not isinstance(__bot_config["Random_selection_for_quiz_questions"], bool):
             raise TypeError("Значение параметра рандомного выбора вопросов должно иметь тип 'bool'.")
-        if not isinstance(__bot_config["ignore_save_state"], bool):
+
+        if not isinstance(__bot_config["Ignore_save_state"], bool):
             raise TypeError("Значение параметра игнорирования точек восстановления должно иметь тип 'bool'.")
-        if not isinstance(__bot_config["force_load_save_state"], bool):
+
+        if not isinstance(__bot_config["Force_load_save_state"], bool):
             raise TypeError("Значение параметра форсированной загрузки точки восстановления должно иметь тип 'bool'.")
+
         if not isinstance(__bot_config["Debug_mode"], bool):
             raise TypeError("Значение параметра использования дебаг-режима должно иметь тип 'bool'.")
 

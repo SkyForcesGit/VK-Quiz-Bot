@@ -92,12 +92,12 @@ class Handler(UtilsInitVKAPI):
             match user_message:
                 case "/get_chat":
                     if user_id not in temp_info["Admin_VK_pages_IDs"]:
-                        if not temp_info["get_chat_first_start"]:
+                        if not temp_info["Get_chat_first_start"]:
                             self.__main_handler_logger.debug("Метод 'main_handler' вернул значение 'None'.\n" +
                                                              '\t' * 9 + "Команда пользователя - '/get_chat'.\n")
                             return None
 
-                    temp_info["get_chat_first_start"] = False
+                    temp_info["Get_chat_first_start"] = False
 
                     self.__parent.data_manager.rewrite_json(temp_info, "temp_info", self.__main_handler_logger)
 
@@ -106,12 +106,12 @@ class Handler(UtilsInitVKAPI):
 
                 case "/start":
                     if user_id in temp_info["Admin_VK_pages_IDs"]:
-                        if not temp_info["start_function_first_start"]:
+                        if not temp_info["Start_function_first_start"]:
                             self.__main_handler_logger.debug("Метод 'main_handler' вернул значение 'None'.\n" +
                                                              '\t' * 9 + "Команда пользователя - '/start'\n")
                             return None
 
-                        temp_info["start_function_first_start"] = False
+                        temp_info["Start_function_first_start"] = False
 
                         self.__parent.data_manager.rewrite_json(temp_info, "temp_info", self.__main_handler_logger)
 
