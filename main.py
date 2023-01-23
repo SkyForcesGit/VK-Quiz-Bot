@@ -30,4 +30,5 @@ if __name__ == "__main__":
     except BaseException as exc:
         utils.ErrorNotifier.create_exception_flag(exc.__class__.__name__, traceback.format_exc())
     finally:
-        del bot
+        # noinspection PyUnboundLocalVariable
+        bot.finalize()

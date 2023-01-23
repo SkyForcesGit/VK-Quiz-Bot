@@ -18,6 +18,9 @@
         Данный метод проверяет файл конфига бота на элементарное соответствие типам и
         значениям полей.
 
+⌊__ finalize
+        Данная функция отвечает за удаление всех объектов бота и завершение его работы.
+
 Подробную информацию о методах и классах ищите в документации к непосредственно им.
 
 Информацию о доступных атрибутах класса смотрите в документации класса.
@@ -54,7 +57,7 @@ class BotCore:
     файлов в рабочие директории, инициирует проверку файла конфигурации, задает основные атрибуты.
 
     Список публичных методов:
-    Отсутствует.
+    | finalize
 
     Список доступных атрибутов класса:
     | logger
@@ -90,6 +93,11 @@ class BotCore:
         else:
             os.mkdir(dir_name)
 
+        self._answer_block = True
+
+        self._stop_event = threading.Event()
+        self._quiz_thread = threading.Thread(target=None)
+
         self._logger = Logger()
         self._data_manager = DataManager(self)
         self._console = Console(self)
@@ -98,11 +106,6 @@ class BotCore:
         self._messenger = Messenger(self)
         self._user_manager = UserManager(self)
         self._quiz_manager = QuizManager(self)
-
-        self._answer_block = True
-
-        self._stop_event = threading.Event()
-        self._quiz_thread = threading.Thread(target=None)
 
     # pylint: disable=too-many-branches
     @staticmethod
@@ -160,7 +163,7 @@ class BotCore:
         if not isinstance(__bot_config["Debug_mode"], bool):
             raise TypeError("Значение параметра использования дебаг-режима должно иметь тип 'bool'.")
 
-    def __del__(self) -> None:
+    def finalize(self) -> None:
         """
         Данная функция отвечает за удаление всех объектов бота и завершение его работы.
 
@@ -169,6 +172,8 @@ class BotCore:
         self._stop_event.set()
         if self._quiz_thread.is_alive():
             self._quiz_thread.join()
+
+        self._quiz_manager.save_state_create()
 
         os.remove("data/temp_info.json")
 

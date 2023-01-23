@@ -33,6 +33,9 @@
 ⌊__ __quiz_iteration_init [PRIVATE]
         Данный метод реализует инициализацию итерации викторины.
 
+⌊__ _save_state_create [PROTECTED]
+        Данный метод инициирует процесс создания точки восстановления бота.
+
 ⌊__ quiz_mainloop
         Основной метод викторины, отвечающий почти за почти все ее функции.
 
@@ -48,8 +51,7 @@ import time
 import random
 import os
 import threading
-import traceback
-from typing import Any
+from typing import Any, Callable
 
 # Сторонние библиотеки
 import playsound
@@ -79,6 +81,7 @@ class QuizManager(UtilsInitDefault):
 
     Список публичных методов:
     | quiz_mainloop
+    | save_state_create
     """
 
     @ErrorNotifier.notify
@@ -331,7 +334,26 @@ class QuizManager(UtilsInitDefault):
 
         return True
 
-    # pylint: disable=broad-except
+    def _save_state_create(self) -> None:
+        """
+        Данный метод инициирует процесс создания точки восстановления бота, которая может быть
+        использована при следующей загрузке программы.
+
+        :return: ничего (None).
+        """
+        crash_temp_info = self.__parent.data_manager.load_json("temp_info")
+
+        self.__parent.data_manager.pickle_dump("save_state", [crash_temp_info, self.__already_used_question_numbers,
+                                                              self.__question_list_to_load,
+                                                              self.__current_question_number, self.__round_counter,
+                                                              self.__time_wait])
+
+    # pylint: disable=missing-function-docstring
+    @property
+    def save_state_create(self) -> Callable[[], Any]:
+        return self._save_state_create
+
+    @ErrorNotifier.notify
     def quiz_mainloop(self, event: threading.Event | None = None) -> None:
         """
         Основной метод викторины, отвечающий почти за почти все ее функции. Инициирует выбор
@@ -344,64 +366,40 @@ class QuizManager(UtilsInitDefault):
         if event is None:
             event = self.__parent.stop_event
 
-        try:
-            self.__quiz_logger.debug("Метод 'quiz_mainloop' запущен.")
+        self.__quiz_logger.debug("Метод 'quiz_mainloop' запущен.")
 
-            if self.__crash_state:
-                pass
-            else:
-                self.__parent.messenger.send_message("start_command_text")
+        if self.__crash_state:
+            pass
+        else:
+            self.__parent.messenger.send_message("start_command_text")
 
-            threading.Thread(target=self.__parent.listener.members_quiz_answers_listener,
-                             name="MembersQuizAnswersListenerThread", daemon=True).start()
+        threading.Thread(target=self.__parent.listener.members_quiz_answers_listener,
+                         name="MembersQuizAnswersListenerThread", daemon=True).start()
 
-            while not event.is_set():
-                self.__quiz_logger.debug("Итерация метода 'quiz_mainloop' начата.")
+        while not event.is_set():
+            self.__quiz_logger.debug("Итерация метода 'quiz_mainloop' начата.")
 
-                if not self.__quiz_iteration_init():
-                    return None
+            if not self.__quiz_iteration_init():
+                return None
 
-                self.__questions_list = self.__parent.data_manager.load_json(self.__question_list_to_load,
-                                                                             self.__quiz_logger)
+            self.__questions_list = self.__parent.data_manager.load_json(self.__question_list_to_load,
+                                                                         self.__quiz_logger)
 
-                if not self.__question_select():
-                    continue
-                self.__quiz_question_publish()
+            if not self.__question_select():
+                continue
+            self.__quiz_question_publish()
 
-                self.__parent.answer_block = False
+            self.__parent.answer_block = False
 
-                temp_info = self.__parent.data_manager.load_json("temp_info", self.__quiz_logger)
+            temp_info = self.__parent.data_manager.load_json("temp_info", self.__quiz_logger)
 
-                if not self.__quiz_question_countdown(temp_info):
-                    return None
+            if not self.__quiz_question_countdown(temp_info):
+                return None
 
-                self.__parent.answer_block = True
+            self.__parent.answer_block = True
 
-                self.__end_of_time_handler()
-                self.__quiz_logger.debug("Итерация метода 'quiz_mainloop' завершена.\n")
-
-            return None
-        except BaseException as exc:
-            str_ = "Во время выполнения метода 'quiz_mainloop' было возбуждено исключение" + \
-                   f" '{exc.__class__.__name__}'. Корректно завершите работу бота, исправьте ошибку и " + \
-                   "перезапустите его - будет начат процесс восстановления сеанса."
-            self.__crash_state = True
-
-            ErrorNotifier.create_exception_flag(exc.__class__.__name__, traceback.format_exc())
-            if self._bot_config["Debug_mode"]:
-                playsound.playsound("assets/sounds/critical_stop.wav")
-
-            self.__quiz_logger.debug(str_)
-            self.__parent.messenger.send_message(str_, {"to_admin": True})
-
-            return None
-        finally:
-            crash_temp_info = self.__parent.data_manager.load_json("temp_info", self.__quiz_logger)
-
-            self.__parent.data_manager.pickle_dump("save_state", [crash_temp_info, self.__already_used_question_numbers,
-                                                                  self.__question_list_to_load,
-                                                                  self.__current_question_number, self.__round_counter,
-                                                                  self.__time_wait])
+            self.__end_of_time_handler()
+            self.__quiz_logger.debug("Итерация метода 'quiz_mainloop' завершена.\n")
 
     def __end_of_time_handler(self) -> None:
         """
