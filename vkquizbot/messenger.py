@@ -170,11 +170,16 @@ class Messenger(UtilsInitMessage):
                         current_keyboard.add_callback_button(keyboard_config["button_name"][button],
                                                              VkKeyboardColor.SECONDARY,
                                                              keyboard_config["payload_list"][button])
+                if keyboard_config["keyboard_build_style"] == "per_line" \
+                        and button != keyboard_config["button_quantity"] - 1:
+                    current_keyboard.add_line()
 
             self.__messenger_logger.debug("Клавиатура создана.\n" +
                                           '\t' * 6 + f"   Inline mode = {keyboard_config['inline_mode']}, " +
                                           f"One-Time mode = {keyboard_config['onetime_mode']}\n" +
                                           '\t' * 6 + f"   Количество кнопок = {keyboard_config['button_quantity']}\n" +
+                                          '\t' * 6 + "   Расположение кнопок = " +
+                                                     f"{keyboard_config['keyboard_build_style']}\n" +
                                           '\t' * 6 + f"   Список имен кнопок: {keyboard_config['button_name']}\n" +
                                           '\t' * 6 + f"   Список цветов кнопок: {keyboard_config['button_color']}\n" +
                                           '\t' * 6 + f"   Список пэйлодов кнопок: {keyboard_config['payload_list']}\n")

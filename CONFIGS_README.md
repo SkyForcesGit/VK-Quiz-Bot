@@ -90,6 +90,7 @@
             "onetime_mode": false,
             "inline_mode": false,
             "button_quantity": 4,
+            "keyboard_build_style": "per_line",
             "button_name": ["answer_1", "answer_2", "answer_3", "answer_4"],
             "button_color": ["PRIMARY", "PRIMARY", "PRIMARY", "PRIMARY"],
             "button_answer_color": ["PRIMARY", "PRIMARY", "PRIMARY", "POSITIVE"],
@@ -107,6 +108,7 @@
             "onetime_mode": false,
             "inline_mode": false,
             "button_quantity": 4,
+            "keyboard_build_style": "per_line",
             "button_name": ["answer_1", "answer_2", "answer_3", "answer_4"],
             "button_color": ["PRIMARY", "PRIMARY", "PRIMARY", "PRIMARY"],
             "button_answer_color": ["PRIMARY", "POSITIVE", "PRIMARY", "PRIMARY"],
@@ -143,6 +145,14 @@
 
   - *"button_quantity"* – количество кнопок, которое должно быть на клавиатуре. 
     Тип данных: *целое неотрицательное число в диапазоне от 1 до 4*.<br><br>
+  
+    - *"keyboard_build_style"* – данный параметр определяет расположение кнопок на клавиатуре. При установленном
+      данному параметру значении *"per_line"* каждая кнопка будет располагаться в отдельном ряду клавиатуры.
+      Иначе все кнопки будут располагаться на одной линии.<br>
+      **С параметром *"per_line"*:**
+      ![PerLineKeyboard](assets/readmes/per_line_keyboard.png)
+      **Классическая клавиатура:**
+      ![ClassicKeyboard](assets/readmes/classic_keyboard.png)<br><br>
 
   - *"button_name"* – список, хранящий тексты с вариантами ответов на вопрос викторины, которые будут отображаться
     на кнопках клавиатуры. **Количество текстов должно совпадать со значением *"button_quantity"***.

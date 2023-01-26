@@ -192,6 +192,8 @@ class Handler(UtilsInitVKAPI):
                                     temp_info["Members_scores"].update({current_user_id: 1})
                                 else:
                                     temp_info["Members_scores"][str(current_user_id)] += 1
+                                self.__members_quiz_answers_handler.debug(f"Пользователю {current_user_id} успешно " +
+                                                                          "начислен балл.")
                             else:
                                 temp_info["Members_answered_on_quiz_right"].append(current_user_id)
                                 self.__members_quiz_answers_handler.debug(f"Пользователь {current_user_id} добавлен " +
