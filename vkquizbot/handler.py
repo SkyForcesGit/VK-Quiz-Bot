@@ -25,6 +25,18 @@
         Данный метод обрабатывает события, созданные в результате нажатия callback-кнопок на
         клавиатуре бота.
 
+⌊__ __get_chat_handler [PRIVATE]
+        Данный метод вызывается 'main_handler' при получении команды '/get_chat'.
+
+⌊__ __start_handler [PRIVATE]
+        Данный метод вызывается 'main_handler' при получении команды '/start'.
+
+⌊__ __kick_all_handler [PRIVATE]
+        Данный метод вызывается 'main_handler' при получении команды '/kick_all'.
+
+⌊__ __kick_handler [PRIVATE]
+        Данный метод вызывается 'main_handler' при получении команды '/kick'.
+
 Подробную информацию о методах и классах ищите в документации к непосредственно им.
 """
 
@@ -72,14 +84,120 @@ class Handler(UtilsInitVKAPI):
         self.__handler_logger.debug(f"Экземпляр класса {self.__class__.__name__} удален сборщиком мусора." +
                                     f"\n{'=' * 30}[Конец логгирования]{'=' * 30}")
 
+    def __get_chat_handler(self, temp_info: dict, raw_info: list, user_id: int) -> None:
+        """
+        Данный приватный метод вызывается 'main_handler' при получении команды '/get_chat' и
+        выполняет действия по запуску соответствующего команде метода.
+
+        :param temp_info: временная информация, полученная от 'main_handler'.
+        :param raw_info: "сырая" информация о сообщении, полученная от 'main_handler'.
+        :param user_id: ID пользователя, отправившего сообщение, полученный от 'main_handler'.
+        :return: ничего (None).
+        """
+        if user_id not in temp_info["Admin_VK_pages_IDs"]:
+            if not temp_info["Get_chat_first_start"]:
+                self.__main_handler_logger.debug("Метод 'main_handler' вернул значение 'None'.\n" +
+                                                 '\t' * 9 + "Команда пользователя - '/get_chat'.\n")
+                self.__parent.messenger.send_message("do_not_have_admin_rights_text",
+                                                     {"reply": raw_info[1]})
+                return None
+
+        temp_info["Get_chat_first_start"] = False
+
+        self.__parent.data_manager.rewrite_json(temp_info, "temp_info", self.__main_handler_logger)
+
+        threading.Thread(target=self.__parent.user_manager.get_chat, args=[raw_info],
+                         name="UserManagerThread").start()
+        self.__main_handler_logger.debug("Метод 'get_chat' был запущен.")
+        return None
+
+    def __start_handler(self, temp_info: dict, raw_info: list, user_id: int) -> None:
+        """
+        Данный приватный метод вызывается 'main_handler' при получении команды '/start' и
+        выполняет действия по запуску соответствующего команде метода.
+
+        :param temp_info: временная информация, полученная от 'main_handler'.
+        :param raw_info: "сырая" информация о сообщении, полученная от 'main_handler'.
+        :param user_id: ID пользователя, отправившего сообщение, полученный от 'main_handler'.
+        :return: ничего (None).
+        """
+        if user_id in temp_info["Admin_VK_pages_IDs"]:
+            if not temp_info["Start_function_first_start"]:
+                self.__main_handler_logger.debug("Метод 'main_handler' вернул значение 'None'.\n" +
+                                                 '\t' * 9 + "Команда пользователя - '/start'\n")
+                self.__parent.messenger.send_message("quiz_already_started_text", {"reply": raw_info[1]})
+                return None
+
+            temp_info["Start_function_first_start"] = False
+
+            self.__parent.data_manager.rewrite_json(temp_info, "temp_info", self.__main_handler_logger)
+
+            self.__parent.quiz_thread = threading.Thread(target=self.__parent.quiz_manager.quiz_mainloop,
+                                                         daemon=True, name="QuizMainloopThread")
+
+            self.__parent.quiz_thread.start()
+            self.__main_handler_logger.debug("Метод 'quiz_mainloop' был запущен.")
+        else:
+            self.__parent.messenger.send_message("do_not_have_admin_rights_text", {"reply": raw_info[1]})
+
+        return None
+
+    def __kick_all_handler(self, temp_info: dict, raw_info: list, user_id: int) -> None:
+        """
+        Данный приватный метод вызывается 'main_handler' при получении команды '/kick_all' и
+        выполняет действия по запуску соответствующего команде метода.
+
+        :param temp_info: временная информация, полученная от 'main_handler'.
+        :param raw_info: "сырая" информация о сообщении, полученная от 'main_handler'.
+        :param user_id: ID пользователя, отправившего сообщение, полученный от 'main_handler'.
+        :return: ничего (None).
+        """
+        if user_id in temp_info["Admin_VK_pages_IDs"]:
+            if len(temp_info["Members_VK_page_IDs"]) != 0:
+                self.__parent.messenger.send_message("start_kick_all_text", {"reply": raw_info[1]})
+                self.__parent.user_manager.kick_all_users()
+                self.__parent.messenger.send_message("end_kick_all_text")
+                self.__main_handler_logger.debug("Все участники были успешно исключены.")
+            else:
+                self.__parent.messenger.send_message("not_found_kick_all_text", {"reply": raw_info[1]})
+        else:
+            self.__parent.messenger.send_message("do_not_have_admin_rights_text", {"reply": raw_info[1]})
+
+        self.__main_handler_logger.debug("Команда '/kick_all' успешно отработана.")
+
+    def __kick_handler(self, temp_info: dict, raw_info: list, user_id: int) -> None:
+        """
+        Данный приватный метод вызывается 'main_handler' при получении команды '/kick' и
+        выполняет действия по запуску соответствующего команде метода.
+
+        :param temp_info: временная информация, полученная от 'main_handler'.
+        :param raw_info: "сырая" информация о сообщении, полученная от 'main_handler'.
+        :param user_id: ID пользователя, отправившего сообщение, полученный от 'main_handler'.
+        :return: ничего (None).
+        """
+        if user_id in temp_info["Admin_VK_pages_IDs"]:
+            if raw_info[6].get("mentions") is not None:
+                if all(user not in temp_info["Admin_VK_pages_IDs"] for user in raw_info[6]["mentions"]):
+                    for user in raw_info[6]["mentions"]:
+                        self.__parent.user_manager.kick_user(user)
+                else:
+                    self.__parent.messenger.send_message("cannot_kick_admin_text", {"reply": raw_info[1]})
+            else:
+                self.__parent.messenger.send_message("nobody_to_kick_text", {"reply": raw_info[1]})
+        else:
+            self.__parent.messenger.send_message("do_not_have_admin_rights_text", {"reply": raw_info[1]})
+
+        self.__main_handler_logger.debug("Команда '/kick' успешно отработана.")
+
     @ErrorNotifier.notify
-    def main_handler(self, user_message: str, user_id: int) -> None:
+    def main_handler(self, user_message: str, raw_info: list, user_id: int) -> None:
         """
         Данный метод обрабатывает текстовые сообщения от пользователей, пойманные основным
         слушателем 'main_listener'. Основная его задача - выследить команды, начинающиеся
-        с '/' ('/start', '/get_chat' и т.д.).
+        с '/' ('/start', '/get_chat' и т.д.) и обработать их.
 
         :param user_message: текст сообщения пользователя, полученного от 'main_listener'.
+        :param raw_info: сырая информация о сообщении, полученная от 'main_listener'.
         :param user_id: ID страницы VK пользователя, который отправил сообщение, полученный от
         'main_listener'.
         :return: ничего (None).
@@ -91,54 +209,18 @@ class Handler(UtilsInitVKAPI):
 
             match user_message:
                 case "/get_chat":
-                    if user_id not in temp_info["Admin_VK_pages_IDs"]:
-                        if not temp_info["Get_chat_first_start"]:
-                            self.__main_handler_logger.debug("Метод 'main_handler' вернул значение 'None'.\n" +
-                                                             '\t' * 9 + "Команда пользователя - '/get_chat'.\n")
-                            self.__parent.messenger.send_message("Для использования данной команды вы должны иметь " +
-                                                                 "права администратора.")
-                            return None
-
-                    temp_info["Get_chat_first_start"] = False
-
-                    self.__parent.data_manager.rewrite_json(temp_info, "temp_info", self.__main_handler_logger)
-
-                    threading.Thread(target=self.__parent.user_manager.get_chat, name="UserManagerThread").start()
-                    self.__main_handler_logger.debug("Метод 'get_chat' был запущен.")
+                    self.__get_chat_handler(temp_info, raw_info, user_id)
 
                 case "/start":
-                    if user_id in temp_info["Admin_VK_pages_IDs"]:
-                        if not temp_info["Start_function_first_start"]:
-                            self.__main_handler_logger.debug("Метод 'main_handler' вернул значение 'None'.\n" +
-                                                             '\t' * 9 + "Команда пользователя - '/start'\n")
-                            self.__parent.messenger.send_message("Викторина уже запущена.")
-                            return None
-
-                        temp_info["Start_function_first_start"] = False
-
-                        self.__parent.data_manager.rewrite_json(temp_info, "temp_info", self.__main_handler_logger)
-
-                        self.__parent.quiz_thread = threading.Thread(target=self.__parent.quiz_manager.quiz_mainloop,
-                                                                     daemon=True, name="QuizMainloopThread")
-
-                        self.__parent.quiz_thread.start()
-                        self.__main_handler_logger.debug("Метод 'quiz_mainloop' был запущен.")
-                    else:
-                        self.__parent.messenger.send_message("Для использования данной команды вы должны иметь " +
-                                                             "права администратора.")
+                    self.__start_handler(temp_info, raw_info, user_id)
 
                 case "/kick_all":
-                    if user_id in temp_info["Admin_VK_pages_IDs"]:
-                        self.__parent.messenger.send_message("Начат процесс исключения участников...")
-                        self.__parent.user_manager.kick_all_users()
-                        self.__parent.messenger.send_message("Все участники были успешно исключены.")
-                        self.__main_handler_logger.debug("Все участники были успешно исключены.")
-                    else:
-                        self.__parent.messenger.send_message("Для использования данной команды вы должны иметь " +
-                                                             "права администратора.")
+                    self.__kick_all_handler(temp_info, raw_info, user_id)
+
+                case "/kick":
+                    self.__kick_handler(temp_info, raw_info, user_id)
 
         self.__main_handler_logger.debug("Метод 'main_handler' успешно завершил работу.\n")
-        return None
 
     @ErrorNotifier.notify
     def bot_question_messages_handler(self, bot_answer_data: list) -> None:

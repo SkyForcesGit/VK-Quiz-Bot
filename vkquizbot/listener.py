@@ -91,8 +91,10 @@ class Listener(UtilsInitLongpoll):
         for event in self._longpoll.listen():
             if event.type == VkEventType.MESSAGE_NEW and event.to_me:
                 user_message = event.text.lower()
+                message_info = event.raw
 
-                threading.Thread(target=self.__parent.handler.main_handler, args=[user_message, event.user_id],
+                threading.Thread(target=self.__parent.handler.main_handler, args=[user_message, message_info,
+                                                                                  event.user_id],
                                  name="MainHandlerThread").start()
                 self.__main_listener_logger.debug("Метод 'main_listener' вызвал метод 'main_listener_handler'.\n" +
                                                   '\t' * 9 + f" Текст сообщения - '{user_message}'\n")

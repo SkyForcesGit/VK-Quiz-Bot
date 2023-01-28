@@ -194,15 +194,16 @@ class Messenger(UtilsInitMessage):
         """
         Данный метод отвечает за сборку структуры сообщения и его последующую отправку.
 
+        Параметры 'message_data': 'attachment' - список ссылок на вложения, 'keyboard' - объект
+        клавиатуры для отправки, 'empty_keyboard' (bool) - отправка пустой клавиатуры,
+        'to_admin' (bool) - указывает, что сообщение должно быть отправлено в ЛС
+        администратору бота, 'reply' - ID сообщения, на которое нужно ответить.
+
         :param message_text: текст, который нужно отправить. Если вместо текста указать заголовок
         сообщения из 'texts_for_questions.json', то будет отправлен текст сообщения, связанный
         с этим заголовком.
         :param message_data: словарь со всеми дополнительными параметрами для сообщения по типу
         вложений и клавиатуры.
-        Параметры: 'attachment' - список ссылок на вложения, 'keyboard' - объект клавиатуры для
-        отправки, 'empty_keyboard' (bool) - отправка пустой клавиатуры,
-        'to_admin' (bool) - указывает, что сообщение должно быть отправлено в ЛС
-        администратору бота.
         :return: ничего (None).
         """
         self.__messenger_logger.debug("Метод 'send_message' запущен.")
@@ -243,6 +244,11 @@ class Messenger(UtilsInitMessage):
             message_data_dict["attachment"] = message_data["attachment"]
 
             self.__messenger_logger.debug("Будет отправлено сообщение с вложением.")
+
+        if message_data.get("reply") is not None:
+            message_data_dict["reply_to"] = message_data["reply"]
+
+            self.__messenger_logger.debug("Будет отправлено сообщение с ответом.")
 
         if message_data.get("to_admin") is not None:
             if message_data["to_admin"]:
