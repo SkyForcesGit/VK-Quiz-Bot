@@ -95,6 +95,8 @@ class Handler(UtilsInitVKAPI):
                         if not temp_info["Get_chat_first_start"]:
                             self.__main_handler_logger.debug("Метод 'main_handler' вернул значение 'None'.\n" +
                                                              '\t' * 9 + "Команда пользователя - '/get_chat'.\n")
+                            self.__parent.messenger.send_message("Для использования данной команды вы должны иметь " +
+                                                                 "права администратора.")
                             return None
 
                     temp_info["Get_chat_first_start"] = False
@@ -109,6 +111,7 @@ class Handler(UtilsInitVKAPI):
                         if not temp_info["Start_function_first_start"]:
                             self.__main_handler_logger.debug("Метод 'main_handler' вернул значение 'None'.\n" +
                                                              '\t' * 9 + "Команда пользователя - '/start'\n")
+                            self.__parent.messenger.send_message("Викторина уже запущена.")
                             return None
 
                         temp_info["Start_function_first_start"] = False
@@ -120,6 +123,19 @@ class Handler(UtilsInitVKAPI):
 
                         self.__parent.quiz_thread.start()
                         self.__main_handler_logger.debug("Метод 'quiz_mainloop' был запущен.")
+                    else:
+                        self.__parent.messenger.send_message("Для использования данной команды вы должны иметь " +
+                                                             "права администратора.")
+
+                case "/kick_all":
+                    if user_id in temp_info["Admin_VK_pages_IDs"]:
+                        self.__parent.messenger.send_message("Начат процесс исключения участников...")
+                        self.__parent.user_manager.kick_all_users()
+                        self.__parent.messenger.send_message("Все участники были успешно исключены.")
+                        self.__main_handler_logger.debug("Все участники были успешно исключены.")
+                    else:
+                        self.__parent.messenger.send_message("Для использования данной команды вы должны иметь " +
+                                                             "права администратора.")
 
         self.__main_handler_logger.debug("Метод 'main_handler' успешно завершил работу.\n")
         return None

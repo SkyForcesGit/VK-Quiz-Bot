@@ -122,6 +122,18 @@ class UserManager(UtilsInitVKAPI):
         return user_name
 
     @ErrorNotifier.notify
+    def kick_all_users(self) -> None:
+        """
+        Данный метод исключает всех пользователей (кроме администраторов) из беседы.
+
+        :return: ничего (None).
+        """
+        temp_info = self.__parent.data_manager.load_json("temp_info", self.__user_manager_logger)
+
+        for user_id in temp_info["Members_VK_page_IDs"]:
+            self.kick_user(user_id)
+
+    @ErrorNotifier.notify
     def kick_user(self, member_id: int) -> None:
         """
         Данный метод исключает участника с указанным ID страницы VK из беседы.
