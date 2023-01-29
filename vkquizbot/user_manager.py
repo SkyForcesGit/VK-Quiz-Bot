@@ -65,11 +65,13 @@ class UserManager(UtilsInitVKAPI):
                                          f"\n{'=' * 30}[Конец логгирования]{'=' * 30}")
 
     @ErrorNotifier.notify
-    def get_chat(self) -> None:
+    def get_chat(self, raw_info: list) -> None:
         """
         Данный метод отвечает за сбор ID страниц VK всех участников беседы. Также определяет
         администраторов беседы и заносит их в отдельный список.
 
+        :param raw_info: сырая информация о сообщении, полученная от 'main_handler'. Используется
+        для того, чтобы бот знал, на чье сообщение отвечать.
         :return: ничего (None).
         """
         self.__user_manager_logger.debug("Метод 'get_chat' запущен.")
@@ -103,9 +105,10 @@ class UserManager(UtilsInitVKAPI):
                                          '\t' * 6 + f"   ID администраторов: {temp_info['Admin_VK_pages_IDs']}\n")
 
         if self.__parent.quiz_thread.is_alive():
-            self.__parent.messenger.send_message("get_chat_complete_text")
+            self.__parent.messenger.send_message("get_chat_complete_text", {"reply": raw_info[1]})
         else:
-            self.__parent.messenger.send_message("get_chat_complete_text", {"empty_keyboard": True})
+            self.__parent.messenger.send_message("get_chat_complete_text", {"empty_keyboard": True,
+                                                                            "reply": raw_info[1]})
 
     @ErrorNotifier.notify
     def get_user_name(self, user_id: int) -> str:
@@ -114,10 +117,14 @@ class UserManager(UtilsInitVKAPI):
 
         :return: строку с именем пользователя в формате "[фамилия] [имя]".
         """
+        self.__user_manager_logger.debug("Метод 'get_user_name' запущен.")
+
         user_info = self._vk_session.method("users.get", {
             "user_ids": user_id
         })
         user_name = [f"{item['first_name']} {item['last_name']}" for item in user_info][0]
+
+        self.__user_manager_logger.debug("Метод 'get_user_name' успешно получил имя пользователя.")
 
         return user_name
 
@@ -128,10 +135,14 @@ class UserManager(UtilsInitVKAPI):
 
         :return: ничего (None).
         """
+        self.__user_manager_logger.debug("Метод 'kick_all_users' запущен.")
+
         temp_info = self.__parent.data_manager.load_json("temp_info", self.__user_manager_logger)
 
         for user_id in temp_info["Members_VK_page_IDs"]:
             self.kick_user(user_id)
+
+        self.__user_manager_logger.debug("Метод 'kick_all_users' успешно завершил работу.")
 
     @ErrorNotifier.notify
     def kick_user(self, member_id: int) -> None:
