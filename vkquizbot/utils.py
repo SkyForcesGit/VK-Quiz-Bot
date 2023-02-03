@@ -58,6 +58,9 @@ from vk_api.longpoll import VkLongPoll
 from vk_api.bot_longpoll import VkBotLongPoll
 from vk_api import VkUpload
 
+# Модули бота
+from .consts import Consts
+
 
 # pylint: disable=too-few-public-methods
 class UtilsInitDefault:
@@ -68,7 +71,6 @@ class UtilsInitDefault:
     def __init__(self) -> None:
         with open("data/bot_config.json", encoding="utf-8") as bot_config:
             self._bot_config = json.load(bot_config)
-
         self._locker = threading.RLock()
 
 
@@ -79,7 +81,7 @@ class UtilsInitVKAPI(UtilsInitDefault):
     """
     def __init__(self) -> None:
         super().__init__()
-        self._vk_session = vk_api.VkApi(token=self._bot_config["VK_API_community_Access_Key"])
+        self._vk_session = vk_api.VkApi(token=self._bot_config["vk_api_community_access_key"])
 
 
 class UtilsInitLongpoll(UtilsInitVKAPI):
@@ -90,7 +92,7 @@ class UtilsInitLongpoll(UtilsInitVKAPI):
     def __init__(self) -> None:
         super().__init__()
         self._longpoll = VkLongPoll(self._vk_session)
-        self._bot_longpoll = VkBotLongPoll(self._vk_session, group_id=self._bot_config["Group_ID"])
+        self._bot_longpoll = VkBotLongPoll(self._vk_session, group_id=self._bot_config["group_id"])
 
 
 class UtilsInitMessage(UtilsInitVKAPI):
@@ -118,8 +120,7 @@ class ErrorNotifier:
     """
     with open("data/bot_config.json", encoding="utf-8") as bot_config:
         _bot_config = json.load(bot_config)
-
-    _vk_session = vk_api.VkApi(token=_bot_config["VK_API_community_Access_Key"])
+    _vk_session = vk_api.VkApi(token=_bot_config["vk_api_community_access_key"])
 
     @staticmethod
     def create_exception_flag(exc_name: str, exc_traceback: str) -> None:
@@ -166,16 +167,16 @@ class ErrorNotifier:
                 result = function(*args, **kwargs)
                 return result
             except BaseException as exc:
-                if cls._bot_config["Debug_mode"]:
+                if cls._bot_config["debug_mode"]:
                     playsound.playsound("assets/sounds/critical_stop.wav")
 
                 cls.create_exception_flag(exc.__class__.__name__, traceback.format_exc())
                 cls._vk_session.method("messages.send", {
-                    "peer_id": cls._bot_config["Lead_Admin_VK_ID"],
-                    "user_id": cls._bot_config["Lead_Admin_VK_ID"],
+                    "peer_id": cls._bot_config["lead_admin_vk_id"],
+                    "user_id": cls._bot_config["lead_admin_vk_id"],
                     "message": f"Было вызвано исключение '{exc.__class__.__name__}' в методе {function.__name__}.\n" +
                                f"{traceback.format_exc()}",
-                    "random_id": random.randint(-30000000, 300000000),
+                    "random_id": random.randint(Consts.RANDINT_BOTTOM_BOUND, Consts.RANDINT_TOP_BOUND),
                     "payload": json.dumps({
                         "is_bot": True
                     })

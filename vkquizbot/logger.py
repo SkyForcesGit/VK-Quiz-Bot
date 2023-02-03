@@ -33,6 +33,7 @@ from loguru import _logger as _builder
 
 # Модули бота
 from .utils import ErrorNotifier
+from .consts import Consts
 
 
 class Logger:
@@ -67,7 +68,7 @@ class Logger:
         :return: ничего (None).
         """
         self.__log_builder_logger.debug(f"Экземпляр класса {self.__class__.__name__} удален сборщиком мусора." +
-                                        f"\n{'=' * 30}[Конец логгирования]{'=' * 30}")
+                                        Consts.END_OF_LOGS_LINE)
 
     @ErrorNotifier.notify
     def get_single_logger(self, logger_config_name: str) -> loguru.logger:
@@ -89,7 +90,7 @@ class Logger:
 
             building_logger.configure(**logger_config["config"])
             self.__log_builder_logger.debug(f"Логгер '{logger_config_name}' успешно создан.\n" +
-                                            '\t' * 6 + f"   Конфигурация: {logger_config['config']}\n")
+                                            f"{Consts.TAB_SPACE_6}Конфигурация: {logger_config['config']}\n")
 
         return building_logger
 
@@ -116,7 +117,8 @@ class Logger:
 
                 building_logger.configure(**loggers_config["configs"][config])
                 self.__log_builder_logger.debug(f"Логгер '{config}' успешно создан.\n" +
-                                                '\t' * 6 + f"   Конфигурация: {loggers_config['configs'][config]}\n")
+                                                f"{Consts.TAB_SPACE_6}Конфигурация: " +
+                                                f"{loggers_config['configs'][config]}\n")
                 built_loggers.append(building_logger)
 
         return built_loggers

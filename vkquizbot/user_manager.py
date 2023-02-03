@@ -27,6 +27,7 @@
 
 # Модули бота
 from .utils import UtilsInitVKAPI, ErrorNotifier
+from .consts import Consts
 
 
 class UserManager(UtilsInitVKAPI):
@@ -62,7 +63,7 @@ class UserManager(UtilsInitVKAPI):
         :return: ничего (None).
         """
         self.__user_manager_logger.debug(f"Экземпляр класса {self.__class__.__name__} удален сборщиком мусора." +
-                                         f"\n{'=' * 30}[Конец логгирования]{'=' * 30}")
+                                         Consts.END_OF_LOGS_LINE)
 
     @ErrorNotifier.notify
     def get_chat(self, raw_info: list) -> None:
@@ -77,9 +78,9 @@ class UserManager(UtilsInitVKAPI):
         self.__user_manager_logger.debug("Метод 'get_chat' запущен.")
 
         with self._locker:
-            temp_info = self.__parent.data_manager.load_json("temp_info", self.__user_manager_logger)
+            temp_info = self.__parent.temp_info
             chat_info_members = self._vk_session.method("messages.getConversationMembers", {
-                "peer_id": 2000000000 + self._bot_config["Chat_for_work_ID"]
+                "peer_id": Consts.PEER_ID_ADDITION_INT + self._bot_config["chat_for_work_id"]
             })
             chat_info_count = chat_info_members['count']
             chat_info_items = chat_info_members['items']
@@ -87,22 +88,20 @@ class UserManager(UtilsInitVKAPI):
             for member in range(chat_info_count):
                 if dict(chat_info_items[member]).get("is_admin") is not None:
                     adm_id = chat_info_items[member]["member_id"]
-
-                    if adm_id in temp_info["Admin_VK_pages_IDs"]:
+                    if adm_id in temp_info.admin_vk_pages_ids:
                         continue
-                    temp_info["Admin_VK_pages_IDs"].append(adm_id)
+                    temp_info.admin_vk_pages_ids.append(adm_id)
                 else:
                     user_id = chat_info_items[member]["member_id"]
-
-                    if user_id in temp_info["Members_VK_page_IDs"]:
+                    if user_id in temp_info.members_vk_page_ids:
                         continue
-                    temp_info["Members_VK_page_IDs"].append(user_id)
+                    temp_info.members_vk_page_ids.append(user_id)
 
-            self.__parent.data_manager.rewrite_json(temp_info, "temp_info", self.__user_manager_logger)
+            self.__parent.temp_info = temp_info
 
         self.__user_manager_logger.debug("Сбор ID пользователей беседы завершен.\n" +
-                                         '\t' * 6 + f"   ID пользователей: {temp_info['Members_VK_page_IDs']}\n" +
-                                         '\t' * 6 + f"   ID администраторов: {temp_info['Admin_VK_pages_IDs']}\n")
+                                         f"{Consts.TAB_SPACE_6}ID пользователей: {temp_info.members_vk_page_ids}\n" +
+                                         f"{Consts.TAB_SPACE_6}ID администраторов: {temp_info.admin_vk_pages_ids}\n")
 
         if self.__parent.quiz_thread.is_alive():
             self.__parent.messenger.send_message("get_chat_complete_text", {"reply": raw_info[1]})
@@ -137,9 +136,9 @@ class UserManager(UtilsInitVKAPI):
         """
         self.__user_manager_logger.debug("Метод 'kick_all_users' запущен.")
 
-        temp_info = self.__parent.data_manager.load_json("temp_info", self.__user_manager_logger)
+        temp_info = self.__parent.temp_info
 
-        for user_id in temp_info["Members_VK_page_IDs"]:
+        for user_id in temp_info.members_vk_page_ids:
             self.kick_user(user_id)
 
         self.__user_manager_logger.debug("Метод 'kick_all_users' успешно завершил работу.")
@@ -154,13 +153,12 @@ class UserManager(UtilsInitVKAPI):
         """
         self.__user_manager_logger.debug("Метод 'kick_user' запущен.")
 
-        temp_info = self.__parent.data_manager.load_json("temp_info", self.__user_manager_logger)
-
-        temp_info["Members_VK_page_IDs"].remove(member_id)
-        self.__parent.data_manager.rewrite_json(temp_info, "temp_info", self.__user_manager_logger)
+        temp_info = self.__parent.temp_info
+        temp_info.members_vk_page_ids.remove(member_id)
+        self.__parent.temp_info = temp_info
 
         self._vk_session.method("messages.removeChatUser", {
-            "chat_id": self._bot_config["Chat_for_work_ID"],
+            "chat_id": self._bot_config["chat_for_work_id"],
             "user_id": member_id,
             "member_id": member_id
         })

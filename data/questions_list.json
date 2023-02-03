@@ -5,12 +5,25 @@
         "keyboard_config": {
             "onetime_mode": false,
             "inline_mode": false,
-            "button_quantity": 4,
             "keyboard_build_style": "per_line",
-            "button_name": ["answer_1", "answer_2", "answer_3", "answer_4"],
-            "button_color": ["PRIMARY", "PRIMARY", "PRIMARY", "PRIMARY"],
-            "button_answer_color": ["PRIMARY", "PRIMARY", "POSITIVE", "PRIMARY"],
-            "payload_list": [{"answer": false}, {"answer": false}, {"answer": true}, {"answer": false}]
+            "buttons": [
+                {
+                    "name": "answer_1",
+                    "payload": false
+                },
+                {
+                    "name": "answer_2",
+                    "payload": false
+                },
+                {
+                    "name": "answer_3",
+                    "payload": true
+                },
+                {
+                    "name": "answer_4",
+                    "payload": false
+                }
+            ]
         },
         "attachment": {
             "photo": ["assets/attachments/1.jpg"]
@@ -23,12 +36,25 @@
         "keyboard_config": {
             "onetime_mode": false,
             "inline_mode": false,
-            "button_quantity": 4,
             "keyboard_build_style": "per_line",
-            "button_name": ["answer_1", "answer_2", "answer_3", "answer_4"],
-            "button_color": ["PRIMARY", "PRIMARY", "PRIMARY", "PRIMARY"],
-            "button_answer_color": ["POSITIVE", "PRIMARY", "PRIMARY", "PRIMARY"],
-            "payload_list": [{"answer": true}, {"answer": false}, {"answer": false}, {"answer": false}]
+            "buttons": [
+                {
+                    "name": "answer_1",
+                    "payload": true
+                },
+                {
+                    "name": "answer_2",
+                    "payload": false
+                },
+                {
+                    "name": "answer_3",
+                    "payload": false
+                },
+                {
+                    "name": "answer_4",
+                    "payload": false
+                }
+            ]
         },
         "attachment": {
             "photo": ["assets/attachments/2.jpg"]
@@ -41,12 +67,25 @@
         "keyboard_config": {
             "onetime_mode": false,
             "inline_mode": false,
-            "button_quantity": 4,
             "keyboard_build_style": "per_line",
-            "button_name": ["answer_1", "answer_2", "answer_3", "answer_4"],
-            "button_color": ["PRIMARY", "PRIMARY", "PRIMARY", "PRIMARY"],
-            "button_answer_color": ["PRIMARY", "PRIMARY", "PRIMARY", "POSITIVE"],
-            "payload_list": [{"answer": false}, {"answer": false}, {"answer": false}, {"answer": true}]
+            "buttons": [
+                {
+                    "name": "answer_1",
+                    "payload": false
+                },
+                {
+                    "name": "answer_2",
+                    "payload": false
+                },
+                {
+                    "name": "answer_3",
+                    "payload": false
+                },
+                {
+                    "name": "answer_4",
+                    "payload": true
+                }
+            ]
         },
         "attachment": {
             "photo": ["assets/attachments/3.jpg", "assets/attachments/3_2.jpg"]
@@ -59,12 +98,25 @@
         "keyboard_config": {
             "onetime_mode": false,
             "inline_mode": false,
-            "button_quantity": 4,
             "keyboard_build_style": "per_line",
-            "button_name": ["answer_1", "answer_2", "answer_3", "answer_4"],
-            "button_color": ["PRIMARY", "PRIMARY", "PRIMARY", "PRIMARY"],
-            "button_answer_color": ["PRIMARY", "POSITIVE", "PRIMARY", "PRIMARY"],
-            "payload_list": [{"answer": false}, {"answer": true}, {"answer": false}, {"answer": false}]
+            "buttons": [
+                {
+                    "name": "answer_1",
+                    "payload": false
+                },
+                {
+                    "name": "answer_2",
+                    "payload": true
+                },
+                {
+                    "name": "answer_3",
+                    "payload": false
+                },
+                {
+                    "name": "answer_4",
+                    "payload": false
+                }
+            ]
         },
         "attachment": {
             "photo": ["assets/attachments/3.jpg", "assets/attachments/3_2.jpg"]
@@ -77,12 +129,25 @@
         "keyboard_config": {
             "onetime_mode": false,
             "inline_mode": false,
-            "button_quantity": 4,
             "keyboard_build_style": "per_line",
-            "button_name": ["answer_1", "answer_2", "answer_3", "answer_4"],
-            "button_color": ["PRIMARY", "PRIMARY", "PRIMARY", "PRIMARY"],
-            "button_answer_color": ["POSITIVE", "PRIMARY", "PRIMARY", "PRIMARY"],
-            "payload_list": [{"answer": true}, {"answer": false}, {"answer": false}, {"answer": false}]
+            "buttons": [
+                {
+                    "name": "answer_1",
+                    "payload": true
+                },
+                {
+                    "name": "answer_2",
+                    "payload": false
+                },
+                {
+                    "name": "answer_3",
+                    "payload": false
+                },
+                {
+                    "name": "answer_4",
+                    "payload": false
+                }
+            ]
         },
         "attachment": {
             "photo": ["assets/attachments/2.jpg"]

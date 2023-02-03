@@ -1,12 +1,13 @@
 {
-    "VK_API_community_Access_Key": null,
-    "Group_ID": null,
-    "Lead_Admin_VK_ID": null,
-    "Chat_for_work_ID": null,
-    "Quiz_mode": "Normal",
-    "Time_on_quiz_round": null,
-    "Random_selection_for_quiz_questions": false,
-    "Ignore_save_state": false,
-    "Force_load_save_state": false,
-    "Debug_mode": true
+    "vk_api_community_access_key": null,
+    "group_id": null,
+    "lead_admin_vk_id": null,
+    "chat_for_work_id": null,
+    "quiz_mode": "Normal",
+    "time_on_quiz_round": null,
+    "random_selection_quiz_for_questions": false,
+    "seed": null,
+    "ignore_save_state": false,
+    "force_load_save_state": false,
+    "debug_mode": true
 }

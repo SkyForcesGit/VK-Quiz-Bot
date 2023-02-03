@@ -50,14 +50,17 @@
 import time
 import random
 import os
+import sys
 import threading
 from typing import Any, Callable
+from string import Template
 
 # Сторонние библиотеки
 import playsound
 
 # Модули бота
 from .utils import UtilsInitDefault, ErrorNotifier
+from .consts import Consts
 
 
 # pylint: disable=too-many-instance-attributes
@@ -92,10 +95,12 @@ class QuizManager(UtilsInitDefault):
         super().__init__()
 
         self.__dump_data = self.__save_state("save_state")
+        self.__seed = sys.maxsize if self._bot_config["seed"] is None else self._bot_config["seed"]
+        self.__texts_for_msgs = self.__parent.texts_for_msgs
+
         if self.__dump_data is not None:
             self.__parent.messenger.unpin_message()
-            self.__parent.messenger.send_message("Начат процесс восстановления сеанса, подождите...",
-                                                 {"empty_keyboard": True})
+            self.__parent.messenger.send_message("recovery_start_text", {"empty_keyboard": True})
 
             self.__already_used_question_numbers, self.__question_list_to_load = self.__dump_data[1], \
                 self.__dump_data[2]
@@ -104,11 +109,10 @@ class QuizManager(UtilsInitDefault):
             self.__crash_state = True
             self.__parent.quiz_thread = threading.Thread(target=self.quiz_mainloop, daemon=True,
                                                          name="QuizMainloopThread")
+            self.__parent.temp_info = self.__dump_data[0]
 
-            self.__parent.data_manager.rewrite_json(self.__dump_data[0], "temp_info", self.__quiz_logger)
             ErrorNotifier.remove_previous_flags()
-
-            self.__parent.messenger.send_message("Процесс восстановления сеанса завершен.")
+            self.__parent.messenger.send_message("recovery_finish_text")
             self.__parent.quiz_thread.start()
         else:
             self.__already_used_question_numbers = []
@@ -127,7 +131,7 @@ class QuizManager(UtilsInitDefault):
         :return: ничего (None).
         """
         self.__quiz_logger.debug(f"Экземпляр класса {self.__class__.__name__} удален сборщиком мусора." +
-                                 f"\n{'=' * 30}[Конец логгирования]{'=' * 30}")
+                                 Consts.END_OF_LOGS_LINE)
 
     @ErrorNotifier.notify
     def __save_state(self, file_name: str) -> None | list[Any]:
@@ -138,9 +142,9 @@ class QuizManager(UtilsInitDefault):
         Если в папке 'dump' будут найдены флаги об ошибках, то метод вернет содержимое файла,
         которое впоследствии будет использовано для восстановления состояния прошлого сеанса.
 
-        Если в конфиге бота параметр 'Ignore_save_state' = True, то содержимое файла не будет
+        Если в конфиге бота параметр 'ignore_save_state' = True, то содержимое файла не будет
         возвращено даже при наличии флагов.
-        Если в конфиге бота параметр 'Force_load_save_state' = True, то содержимое файла будет
+        Если в конфиге бота параметр 'force_load_save_state' = True, то содержимое файла будет
         возвращено даже при отсутствии флагов.
 
         :param file_name: имя bin-файла, который нужно загрузить и обработать.
@@ -149,11 +153,14 @@ class QuizManager(UtilsInitDefault):
         if f"{file_name}.bin" in os.listdir("dump/"):
             dumped_data = self.__parent.data_manager.pickle_load(file_name)
 
-            if self._bot_config["Ignore_save_state"]:
+            if self._bot_config["ignore_save_state"]:
                 return None
-            if any(file.endswith(".flag") for file in os.listdir("dump/")) or self._bot_config["Force_load_save_state"]:
+
+            if any(file.endswith(".flag") for file in os.listdir("dump/")) or self._bot_config["force_load_save_state"]:
                 return dumped_data
+
             return None
+
         return None
 
     def __finish_quiz(self) -> None:
@@ -163,27 +170,31 @@ class QuizManager(UtilsInitDefault):
 
         :return: ничего (None)
         """
-        temp_info = self.__parent.data_manager.load_json("temp_info", self.__quiz_logger)
+        temp_info = self.__parent.temp_info
+        template_1 = Template(self.__texts_for_msgs["winner_score_text"])
+        template_2 = Template(self.__texts_for_msgs["winner_classic_text"])
 
         try:
-            if self._bot_config["Quiz_mode"] == "Score":
-                score_dict = temp_info["Members_scores"]
+            if self._bot_config["quiz_mode"] == "Score":
+                score_dict = temp_info.members_scores
                 max_score = max(score_dict.values())
                 winner_id = list(score_dict.keys())[list(score_dict.values()).index(max_score)]
                 winner_name = self.__parent.user_manager.get_user_name(winner_id)
-                self.__parent.messenger.send_message(f"{winner_name}, поздравляем с победой в конкурсе!" +
-                                                     f"\nВы набрали наибольшее количество баллов -- {max_score}!",
+
+                self.__parent.messenger.send_message(template_1.safe_substitute(WINNER_NAME=winner_name,
+                                                                                MAX_SCORE=max_score),
                                                      {"empty_keyboard": True})
             else:
                 winner_name = self.__parent.user_manager.get_user_name(temp_info["Members_VK_page_IDs"][0])
-                self.__parent.messenger.send_message(f"{winner_name}, поздравляем с победой в конкурсе!" +
-                                                     '\nВы -- последний "выживший"!', {"empty_keyboard": True})
-            if self._bot_config["Debug_mode"]:
+
+                self.__parent.messenger.send_message(template_2.safe_substitute(WINNER_NAME=winner_name),
+                                                     {"empty_keyboard": True})
+            if self._bot_config["debug_mode"]:
                 playsound.playsound("assets/sounds/tada.wav")
         except ValueError:
-            if self._bot_config["Debug_mode"]:
+            if self._bot_config["debug_mode"]:
                 playsound.playsound("assets/sounds/exclamation.wav")
-            self.__parent.messenger.send_message("А где победитель?", {"empty_keyboard": True})
+            self.__parent.messenger.send_message("winner_do_not_found_text", {"empty_keyboard": True})
 
     def __question_select(self, event: threading.Event | None = None) -> bool:
         """
@@ -200,42 +211,41 @@ class QuizManager(UtilsInitDefault):
             self.__crash_state = False
             return True
 
+        rand_gen = random.Random(self.__seed)
+
         if len(self.__already_used_question_numbers) != len(self.__questions_list):
-            if self._bot_config["Random_selection_for_quiz_questions"]:
+            if self._bot_config["random_selection_for_quiz_questions"]:
                 while not event.is_set():
-                    self.__current_question_number = random.randint(0, len(self.__questions_list) - 1)
+                    self.__current_question_number = rand_gen.randint(0, len(self.__questions_list) - 1)
 
                     if self.__current_question_number in self.__already_used_question_numbers:
                         continue
                     break
-
             else:
                 if self.__current_question_number < len(self.__questions_list) - 1:
                     self.__current_question_number += 1
 
             self.__already_used_question_numbers.append(self.__current_question_number)
             self.__quiz_logger.debug(f"ID выбранного вопроса: {self.__current_question_number + 1}\n")
-
             return True
 
-        if self._bot_config["Quiz_mode"] != "Score":
-            if self._bot_config["Debug_mode"]:
+        if self._bot_config["quiz_mode"] != "Score":
+            if self._bot_config["debug_mode"]:
                 playsound.playsound("assets/sounds/exclamation.wav")
 
             self.__quiz_logger.debug("Вопросы закончились. Добавьте новые вопросы в очередь.")
             self.__parent.messenger.send_message("question_queue_finish_text", {"to_admin": True})
 
             questions_list_modification_time = os.path.getmtime(f"data/{self.__question_list_to_load}.json")
-
             while not event.is_set():
                 if questions_list_modification_time != os.path.getmtime(f"data/{self.__question_list_to_load}.json"):
                     break
-                time.sleep(5)
+                time.sleep(Consts.TIME_DELAY_5)
         else:
             self.__finish_quiz()
             self.__parent.stop_event.set()
 
-        time.sleep(3)
+        time.sleep(Consts.TIME_DELAY_5)
         return False
 
     def __quiz_question_publish(self) -> None:
@@ -247,18 +257,17 @@ class QuizManager(UtilsInitDefault):
         keyboard = self.__parent.messenger.keyboard_build(self.__questions_list[self.__current_question_number]
                                                           ["keyboard_config"])
         attachment = self.__parent.messenger.attachment_upload(self.__current_question_number)
+        template = Template(self.__texts_for_msgs["question_text"])
 
-        self.__parent.messenger.send_message(f"Вопрос номер {self.__round_counter}:\n" +
+        self.__parent.messenger.send_message(template.safe_substitute(ROUND_COUNTER=self.__round_counter) +
                                              self.__questions_list[self.__current_question_number]["message"],
                                              {"keyboard": keyboard, "attachment": attachment})
-        time.sleep(5)
+        time.sleep(Consts.TIME_DELAY_5)
 
-        temp_info = self.__parent.data_manager.load_json("temp_info", self.__quiz_logger)
+        temp_info = self.__parent.temp_info
+        self.__parent.messenger.pin_message(int(temp_info.current_id_of_latest_quiz_message))
 
-        self.__parent.messenger.pin_message(int(temp_info["Current_ID_of_latest_quiz_message"]))
-
-    def __quiz_question_countdown(self, temp_info: dict[str, dict | list | bool | int],
-                                  event: threading.Event | None = None) -> bool:
+    def __quiz_question_countdown(self, temp_info, event: threading.Event | None = None) -> bool:
         """
         Данный метод осуществляет отсчет времени до конца раунда. В режиме блиц-опроса ожидает,
         пока ответят оба участника, а затем завершается.
@@ -271,26 +280,24 @@ class QuizManager(UtilsInitDefault):
         if event is None:
             event = self.__parent.stop_event
 
-        if self._bot_config["Quiz_mode"] == "Blitz" and len(temp_info["Members_VK_page_IDs"]) == 2:
+        if self._bot_config["quiz_mode"] == "Blitz" \
+                and len(temp_info.members_vk_page_ids) == Consts.MEMBER_QUANT_TO_KEEP_BLITZ:
             while not event.is_set():
-                temp_blitz = self.__parent.data_manager.load_json("temp_info", self.__quiz_logger)
-
-                if len(temp_blitz["Members_answered_on_quiz"]) == 2:
+                temp_blitz = self.__parent.temp_info
+                if len(temp_blitz.members_answered_on_quiz) == Consts.MEMBER_QUANT_TO_KEEP_BLITZ:
                     return True
-                time.sleep(10)
 
-        # Для быстрого вызова исключения (в целях дебаггинга).
-        # if self.__current_question_number == 1:
-        #     a = 4 / 0
+                time.sleep(Consts.TIME_DELAY_10)
 
         while True:
-            if self.__time_wait > 60 * self._bot_config["Time_on_quiz_round"]:
+            if self.__time_wait > Consts.QUIZ_TIME_DELAY_SAMPLE * self._bot_config["time_on_quiz_round"]:
                 return True
+
             if event.is_set():
                 return False
 
-            time.sleep(4)
-            self.__time_wait += 4
+            time.sleep(Consts.TIME_DELAY_5)
+            self.__time_wait += Consts.TIME_DELAY_5
 
     def __quiz_iteration_init(self) -> bool:
         """
@@ -301,37 +308,36 @@ class QuizManager(UtilsInitDefault):
         :return: возвращает True, если итерация викторины может быть продолжена, False - если
         викторина должна быть завершена.
         """
-        temp_info = self.__parent.data_manager.load_json("temp_info", self.__quiz_logger)
+        temp_info = self.__parent.temp_info
 
-        if self._bot_config["Debug_mode"]:
+        if self._bot_config["debug_mode"]:
             playsound.playsound("assets/sounds/exclamation.wav")
 
-        if self._bot_config["Quiz_mode"] == "Blitz":
-            match len(temp_info["Members_VK_page_IDs"]):
-                case 2:
-                    if not temp_info["Blitz_start"]:
+        if self._bot_config["quiz_mode"] == "Blitz":
+            match len(temp_info.members_vk_page_ids):
+                case Consts.MEMBER_QUANT_TO_KEEP_BLITZ:
+                    if not temp_info.blitz_start:
                         self.__round_counter = 1
-                        temp_info["Blitz_start"] = True
-
+                        temp_info.blitz_start = True
                         self.__already_used_question_numbers.clear()
-                        self.__parent.messenger.send_message("Мы переходим в режим блиц-опроса!")
-                        self.__parent.data_manager.rewrite_json(temp_info, "temp_info", self.__quiz_logger)
+                        self.__parent.messenger.send_message("blitz_quiz_start_text")
+                        self.__parent.temp_info = temp_info
 
                     self.__question_list_to_load = "blitz_questions_list"
                     return True
-                case 1:
+
+                case Consts.MEMBERS_TO_FINISH_BOUND:
                     self.__finish_quiz()
                     self.__quiz_logger.debug("Метод 'quiz_mainloop' успешно завершил работу.")
                     return False
 
-        if self._bot_config["Quiz_mode"] != "Score":
-            if len(temp_info["Members_VK_page_IDs"]) == 1:
+        if self._bot_config["quiz_mode"] != "Score":
+            if len(temp_info["Members_VK_page_IDs"]) == Consts.MEMBERS_TO_FINISH_BOUND:
                 self.__finish_quiz()
                 self.__quiz_logger.debug("Метод 'quiz_mainloop' успешно завершил работу.")
                 return False
 
         self.__question_list_to_load = "questions_list"
-
         return True
 
     def _save_state_create(self) -> None:
@@ -341,7 +347,7 @@ class QuizManager(UtilsInitDefault):
 
         :return: ничего (None).
         """
-        crash_temp_info = self.__parent.data_manager.load_json("temp_info")
+        crash_temp_info = self.__parent.temp_info
 
         self.__parent.data_manager.pickle_dump("save_state", [crash_temp_info, self.__already_used_question_numbers,
                                                               self.__question_list_to_load,
@@ -367,6 +373,7 @@ class QuizManager(UtilsInitDefault):
             event = self.__parent.stop_event
 
         self.__quiz_logger.debug("Метод 'quiz_mainloop' запущен.")
+        self.__quiz_logger.debug(f"Сид викторины - {self.__seed}")
 
         if self.__crash_state:
             pass
@@ -384,20 +391,17 @@ class QuizManager(UtilsInitDefault):
 
             self.__questions_list = self.__parent.data_manager.load_json(self.__question_list_to_load,
                                                                          self.__quiz_logger)
-
             if not self.__question_select():
                 continue
             self.__quiz_question_publish()
 
             self.__parent.answer_block = False
-
-            temp_info = self.__parent.data_manager.load_json("temp_info", self.__quiz_logger)
+            temp_info = self.__parent.temp_info
 
             if not self.__quiz_question_countdown(temp_info):
                 return None
 
             self.__parent.answer_block = True
-
             self.__end_of_time_handler()
             self.__quiz_logger.debug("Итерация метода 'quiz_mainloop' завершена.\n")
 
@@ -412,40 +416,41 @@ class QuizManager(UtilsInitDefault):
         """
         self.__quiz_logger.debug("Метод 'end_of_time_kicker' запущен.")
 
-        temp_info = self.__parent.data_manager.load_json("temp_info", self.__quiz_logger)
+        temp_info = self.__parent.temp_info
+        template_1 = Template(self.__texts_for_msgs["nobody_was_kicked_text"])
+        template_2 = Template(self.__texts_for_msgs["somebody_was_kicked_text"])
+        template_3 = Template(self.__texts_for_msgs["right_answer_text"])
 
-        self.__parent.messenger.send_message("Время ответа на вопрос истекло!", {"empty_keyboard": True})
+        self.__parent.messenger.send_message("answer_time_over_text", {"empty_keyboard": True})
 
-        if self._bot_config["Quiz_mode"] != "Score":
-            members_queued_to_kick = list(set(temp_info["Members_VK_page_IDs"]).
-                                          difference(temp_info["Members_answered_on_quiz_right"]))
+        if self._bot_config["quiz_mode"] != "Score":
+            members_queued_to_kick = list(set(temp_info.members_vk_page_ids).
+                                          difference(temp_info.members_answered_on_quiz_right))
             self.__quiz_logger.debug(f"Участники, которые будут исключены: {members_queued_to_kick}")
 
             if len(members_queued_to_kick) == 0:
-                self.__parent.messenger.send_message(f"По итогам {self.__round_counter} раунда никто не был исключен.")
+                self.__parent.messenger.send_message(template_1.safe_substitute(ROUND_COUNTER=self.__round_counter))
             else:
                 for member_kick in members_queued_to_kick:
                     self.__parent.user_manager.kick_user(member_kick)
-                self.__parent.messenger.send_message(f"По итогам {self.__round_counter} раунда был(о) исключен(о) " +
-                                                     f"{len(members_queued_to_kick)} человек(а).")
+                self.__parent.messenger.send_message(template_2.safe_substitute(ROUND_COUNTER=self.__round_counter,
+                                                                                COUNT_MEMBERS_TO_KICK=
+                                                                                len(members_queued_to_kick)))
 
         self.__parent.messenger.unpin_message()
-
         keyboard = self.__parent.messenger.keyboard_build(self.__questions_list[self.__current_question_number]
-                                                          ["keyboard_config"], "button_answer_color")
-        right_answer_index = self.__questions_list[self.__current_question_number] \
-            ["keyboard_config"]["payload_list"].index({"answer": True})
-        right_answer = self.__questions_list[self.__current_question_number] \
-            ["keyboard_config"]["button_name"][right_answer_index]
+                                                          ["keyboard_config"], "answer_color")
+        current_question_answers = self.__questions_list[self.__current_question_number]["keyboard_config"]["buttons"]
+        right_answers = [item["name"] for item in current_question_answers if item["payload"]]
 
-        self.__parent.messenger.send_message(f"Верный ответ на вопрос викторины: {right_answer}",
+        self.__parent.messenger.send_message(template_3.safe_substitute(RIGHT_ANSWERS=', '.join(right_answers)),
                                              {"keyboard": keyboard})
-        time.sleep(5)
+        time.sleep(Consts.TIME_DELAY_5)
 
         self.__round_counter += 1
         self.__time_wait = 0
-        temp_info["Members_answered_on_quiz"].clear()
+        temp_info.members_answered_on_quiz.clear()
         self.__quiz_logger.debug("Список 'Members_answered_on_quiz' был очищен.")
-        temp_info["Members_answered_on_quiz_right"].clear()
+        temp_info.members_answered_on_quiz_right.clear()
         self.__quiz_logger.debug("Список 'Members_answered_on_quiz_right' был очищен.")
-        self.__parent.data_manager.rewrite_json(temp_info, "temp_info", self.__quiz_logger)
+        self.__parent.temp_info = temp_info

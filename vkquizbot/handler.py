@@ -10,6 +10,9 @@
 входящей информации, а также модификации и идентификации различных свойств исходящих данных.
 
 Список классов и методов:
+| HandlerException(BaseException)
+    Данный тип исключений используется во время обработки информации обработчиками.
+
 | Handler(UtilsInitVKAPI)
     Данный класс отвечает за работу различных обработчиков данных, поступающих боту.
     Методы класса обрабатывают полученные/отправленные события и сообщения.
@@ -46,6 +49,15 @@ import threading
 
 # Модули бота
 from .utils import UtilsInitVKAPI, ErrorNotifier
+from .consts import Consts
+
+
+class HandlerException(BaseException):
+    """
+    Данный тип исключений используется во время обработки информации обработчиками и в основном
+    вызывается в те моменты, когда нужно спровоцировать отправку определенного сообщения вследствие
+    не пройденных проверок информации.
+    """
 
 
 class Handler(UtilsInitVKAPI):
@@ -82,9 +94,9 @@ class Handler(UtilsInitVKAPI):
         :return: ничего (None).
         """
         self.__handler_logger.debug(f"Экземпляр класса {self.__class__.__name__} удален сборщиком мусора." +
-                                    f"\n{'=' * 30}[Конец логгирования]{'=' * 30}")
+                                    Consts.END_OF_LOGS_LINE)
 
-    def __get_chat_handler(self, temp_info: dict, raw_info: list, user_id: int) -> None:
+    def __get_chat_handler(self, temp_info, raw_info: list, user_id: int) -> None:
         """
         Данный приватный метод вызывается 'main_handler' при получении команды '/get_chat' и
         выполняет действия по запуску соответствующего команде метода.
@@ -94,24 +106,23 @@ class Handler(UtilsInitVKAPI):
         :param user_id: ID пользователя, отправившего сообщение, полученный от 'main_handler'.
         :return: ничего (None).
         """
-        if user_id not in temp_info["Admin_VK_pages_IDs"]:
-            if not temp_info["Get_chat_first_start"]:
-                self.__main_handler_logger.debug("Метод 'main_handler' вернул значение 'None'.\n" +
-                                                 '\t' * 9 + "Команда пользователя - '/get_chat'.\n")
-                self.__parent.messenger.send_message("do_not_have_admin_rights_text",
-                                                     {"reply": raw_info[1]})
-                return None
+        try:
+            if user_id not in temp_info.admin_vk_pages_ids:
+                if not temp_info.get_chat_first_start:
+                    raise HandlerException("do_not_have_admin_rights_text")
 
-        temp_info["Get_chat_first_start"] = False
+            temp_info.get_chat_first_start = False
+            self.__parent.temp_info = temp_info
 
-        self.__parent.data_manager.rewrite_json(temp_info, "temp_info", self.__main_handler_logger)
+            threading.Thread(target=self.__parent.user_manager.get_chat, args=[raw_info],
+                             name="UserManagerThread").start()
+            self.__main_handler_logger.debug("Метод 'get_chat' был запущен.")
+        except HandlerException as exc:
+            self.__parent.messenger.send_message(str(exc), {"reply": raw_info[1]})
+            self.__main_handler_logger.debug("Метод 'main_handler' вернул значение 'None'.\n" +
+                                             f"{Consts.TAB_SPACE_9}Команда пользователя - '/get_chat'.\n")
 
-        threading.Thread(target=self.__parent.user_manager.get_chat, args=[raw_info],
-                         name="UserManagerThread").start()
-        self.__main_handler_logger.debug("Метод 'get_chat' был запущен.")
-        return None
-
-    def __start_handler(self, temp_info: dict, raw_info: list, user_id: int) -> None:
+    def __start_handler(self, temp_info, raw_info: list, user_id: int) -> None:
         """
         Данный приватный метод вызывается 'main_handler' при получении команды '/start' и
         выполняет действия по запуску соответствующего команде метода.
@@ -121,28 +132,25 @@ class Handler(UtilsInitVKAPI):
         :param user_id: ID пользователя, отправившего сообщение, полученный от 'main_handler'.
         :return: ничего (None).
         """
-        if user_id in temp_info["Admin_VK_pages_IDs"]:
-            if not temp_info["Start_function_first_start"]:
-                self.__main_handler_logger.debug("Метод 'main_handler' вернул значение 'None'.\n" +
-                                                 '\t' * 9 + "Команда пользователя - '/start'\n")
-                self.__parent.messenger.send_message("quiz_already_started_text", {"reply": raw_info[1]})
-                return None
+        try:
+            if user_id not in temp_info.admin_vk_pages_ids:
+                raise HandlerException("do_not_have_admin_rights_text")
+            if not temp_info.start_function_first_start:
+                raise HandlerException("quiz_already_started_text")
 
-            temp_info["Start_function_first_start"] = False
-
-            self.__parent.data_manager.rewrite_json(temp_info, "temp_info", self.__main_handler_logger)
-
+            temp_info.start_function_first_start = False
+            self.__parent.temp_info = temp_info
             self.__parent.quiz_thread = threading.Thread(target=self.__parent.quiz_manager.quiz_mainloop,
                                                          daemon=True, name="QuizMainloopThread")
 
             self.__parent.quiz_thread.start()
             self.__main_handler_logger.debug("Метод 'quiz_mainloop' был запущен.")
-        else:
-            self.__parent.messenger.send_message("do_not_have_admin_rights_text", {"reply": raw_info[1]})
+        except HandlerException as exc:
+            self.__parent.messenger.send_message(str(exc), {"reply": raw_info[1]})
+            self.__main_handler_logger.debug("Метод 'main_handler' вернул значение 'None'.\n" +
+                                             f"{Consts.TAB_SPACE_9}Команда пользователя - '/start'\n")
 
-        return None
-
-    def __kick_all_handler(self, temp_info: dict, raw_info: list, user_id: int) -> None:
+    def __kick_all_handler(self, temp_info, raw_info: list, user_id: int) -> None:
         """
         Данный приватный метод вызывается 'main_handler' при получении команды '/kick_all' и
         выполняет действия по запуску соответствующего команде метода.
@@ -152,20 +160,22 @@ class Handler(UtilsInitVKAPI):
         :param user_id: ID пользователя, отправившего сообщение, полученный от 'main_handler'.
         :return: ничего (None).
         """
-        if user_id in temp_info["Admin_VK_pages_IDs"]:
-            if len(temp_info["Members_VK_page_IDs"]) != 0:
-                self.__parent.messenger.send_message("start_kick_all_text", {"reply": raw_info[1]})
-                self.__parent.user_manager.kick_all_users()
-                self.__parent.messenger.send_message("end_kick_all_text")
-                self.__main_handler_logger.debug("Все участники были успешно исключены.")
-            else:
-                self.__parent.messenger.send_message("not_found_kick_all_text", {"reply": raw_info[1]})
+        try:
+            if user_id not in temp_info.admin_vk_pages_ids:
+                raise HandlerException("do_not_have_admin_rights_text")
+            if len(temp_info.members_vk_page_ids) == 0:
+                raise HandlerException("not_found_kick_all_text")
+
+            self.__parent.messenger.send_message("start_kick_all_text", {"reply": raw_info[1]})
+            self.__parent.user_manager.kick_all_users()
+            self.__parent.messenger.send_message("end_kick_all_text")
+            self.__main_handler_logger.debug("Все участники были успешно исключены.")
+        except HandlerException as exc:
+            self.__parent.messenger.send_message(str(exc), {"reply": raw_info[1]})
         else:
-            self.__parent.messenger.send_message("do_not_have_admin_rights_text", {"reply": raw_info[1]})
+            self.__main_handler_logger.debug("Команда '/kick_all' успешно отработана.")
 
-        self.__main_handler_logger.debug("Команда '/kick_all' успешно отработана.")
-
-    def __kick_handler(self, temp_info: dict, raw_info: list, user_id: int) -> None:
+    def __kick_handler(self, temp_info, raw_info: list, user_id: int) -> None:
         """
         Данный приватный метод вызывается 'main_handler' при получении команды '/kick' и
         выполняет действия по запуску соответствующего команде метода.
@@ -175,19 +185,20 @@ class Handler(UtilsInitVKAPI):
         :param user_id: ID пользователя, отправившего сообщение, полученный от 'main_handler'.
         :return: ничего (None).
         """
-        if user_id in temp_info["Admin_VK_pages_IDs"]:
-            if raw_info[6].get("mentions") is not None:
-                if all(user not in temp_info["Admin_VK_pages_IDs"] for user in raw_info[6]["mentions"]):
-                    for user in raw_info[6]["mentions"]:
-                        self.__parent.user_manager.kick_user(user)
-                else:
-                    self.__parent.messenger.send_message("cannot_kick_admin_text", {"reply": raw_info[1]})
-            else:
-                self.__parent.messenger.send_message("nobody_to_kick_text", {"reply": raw_info[1]})
-        else:
-            self.__parent.messenger.send_message("do_not_have_admin_rights_text", {"reply": raw_info[1]})
+        try:
+            if user_id not in temp_info.admin_vk_pages_ids:
+                raise HandlerException("do_not_have_admin_rights_text")
+            if raw_info[6].get("mentions") is None:
+                raise HandlerException("nobody_to_kick_text")
 
-        self.__main_handler_logger.debug("Команда '/kick' успешно отработана.")
+            for user in raw_info[6]["mentions"]:
+                if user in temp_info.admin_vk_pages_ids:
+                    raise HandlerException("cannot_kick_admin_text")
+                self.__parent.user_manager.kick_user(user)
+        except HandlerException as exc:
+            self.__parent.messenger.send_message(str(exc), {"reply": raw_info[1]})
+        else:
+            self.__main_handler_logger.debug("Команда '/kick' успешно отработана.")
 
     @ErrorNotifier.notify
     def main_handler(self, user_message: str, raw_info: list, user_id: int) -> None:
@@ -205,20 +216,18 @@ class Handler(UtilsInitVKAPI):
         self.__main_handler_logger.debug("Метод 'main_handler' запущен.")
 
         with self._locker:
-            temp_info = self.__parent.data_manager.load_json("temp_info", self.__main_handler_logger)
+            temp_info = self.__parent.temp_info
 
-            match user_message:
-                case "/get_chat":
-                    self.__get_chat_handler(temp_info, raw_info, user_id)
-
-                case "/start":
-                    self.__start_handler(temp_info, raw_info, user_id)
-
-                case "/kick_all":
-                    self.__kick_all_handler(temp_info, raw_info, user_id)
-
-                case "/kick":
-                    self.__kick_handler(temp_info, raw_info, user_id)
+        try:
+            handlers = {
+                "/get_chat": self.__get_chat_handler,
+                "/start": self.__start_handler,
+                "/kick_all": self.__kick_all_handler,
+                "/kick": self.__kick_handler,
+            }
+            handlers[user_message](temp_info, raw_info, user_id)
+        except KeyError:
+            pass
 
         self.__main_handler_logger.debug("Метод 'main_handler' успешно завершил работу.\n")
 
@@ -240,22 +249,18 @@ class Handler(UtilsInitVKAPI):
                 _current_id_of_message_question = bot_answer_data[1]
 
                 with self._locker:
-                    temp_info = self.__parent.data_manager.load_json("temp_info",
-                                                                     self.__bot_question_messages_handler)
-                    temp_info["Current_ID_of_latest_quiz_message"] = _current_id_of_message_question
-
-                    self.__parent.data_manager.rewrite_json(temp_info, "temp_info",
-                                                            self.__bot_question_messages_handler)
+                    temp_info = self.__parent.temp_info
+                    temp_info.current_id_of_latest_quiz_message = _current_id_of_message_question
+                    self.__parent.temp_info = temp_info
 
                 self.__bot_question_messages_handler.debug("Метод 'bot_question_messages_handler' успешно " +
                                                            "завершил работу.\n" +
-                                                           '\t' * 11 + "     ID последнего вопроса " +
-                                                           f"- {_current_id_of_message_question}\n")
+                                                           f"{Consts.TAB_SPACE_11}ID последнего вопроса - " +
+                                                           f"{_current_id_of_message_question}\n")
         else:
             self.__bot_question_messages_handler.debug("Метод 'bot_question_messages_handler' не распознал " +
                                                        "в сообщении вопрос.\n")
 
-    # pylint: disable=too-many-nested-blocks
     @ErrorNotifier.notify
     def members_quiz_answers_handler(self, event_data: dict) -> None:
         """
@@ -271,53 +276,51 @@ class Handler(UtilsInitVKAPI):
         self.__members_quiz_answers_handler.debug("Метод 'members_answers_handler' запущен.")
 
         with self._locker:
-            json_texts, temp_info = self.__parent.data_manager.load_jsons(["texts_for_messages", "temp_info"],
-                                                                          self.__members_quiz_answers_handler)
+            texts_for_messages = self.__parent.data_manager.load_json("texts_for_messages",
+                                                                      self.__members_quiz_answers_handler)
+            temp_info = self.__parent.temp_info
             current_user_id = event_data["object"]["user_id"]
             current_payload = event_data["object"]["payload"]["answer"]
             current_event_id = event_data["object"]["event_id"]
 
             self.__members_quiz_answers_handler.debug(f"Текущий ID пользователя: {current_user_id}\n" +
-                                                      '\t' * 11 + f"Текущий ID события: {current_event_id}\n" +
-                                                      '\t' * 11 + f"Текущий пэйлод: {current_payload}")
+                                                      f"{Consts.TAB_SPACE_11}Текущий ID события: {current_event_id}\n" +
+                                                      f"{Consts.TAB_SPACE_11}Текущий пэйлод: {current_payload}")
 
-            if not self.__parent.answer_block:
-                if current_user_id not in temp_info["Admin_VK_pages_IDs"]:
-                    if current_user_id not in temp_info["Members_answered_on_quiz"]:
-                        if current_payload:
-                            if self._bot_config["Quiz_mode"] == "Score":
-                                if str(current_user_id) not in list(temp_info["Members_scores"].keys()):
-                                    temp_info["Members_scores"].update({current_user_id: 1})
-                                else:
-                                    temp_info["Members_scores"][str(current_user_id)] += 1
-                                self.__members_quiz_answers_handler.debug(f"Пользователю {current_user_id} успешно " +
-                                                                          "начислен балл.")
-                            else:
-                                temp_info["Members_answered_on_quiz_right"].append(current_user_id)
-                                self.__members_quiz_answers_handler.debug(f"Пользователь {current_user_id} добавлен " +
-                                                                          "в список успешно ответивших.")
+            try:
+                if self.__parent.answer_block:
+                    raise HandlerException("answer_blocked_text")
+                if current_user_id in temp_info.admin_vk_pages_ids:
+                    raise HandlerException("admin_cannot_answer_text")
+                if current_user_id in temp_info.members_answered_on_quiz:
+                    raise HandlerException("already_answered_text")
 
-                        temp_info["Members_answered_on_quiz"].append(current_user_id)
-
-                        self.__parent.data_manager.rewrite_json(temp_info, "temp_info",
-                                                                self.__members_quiz_answers_handler)
-
-                        event_answer_text = json_texts["answer_got_text"]
+                if current_payload:
+                    if self._bot_config["quiz_mode"] == "Score":
+                        if str(current_user_id) not in list(temp_info.members_scores.keys()):
+                            temp_info.members_scores.update({current_user_id: 1})
+                        else:
+                            temp_info.members_scores[str(current_user_id)] += 1
+                        self.__members_quiz_answers_handler.debug(f"Пользователю {current_user_id} успешно " +
+                                                                  "начислен балл.")
                     else:
-                        event_answer_text = json_texts["already_answered_text"]
-                else:
-                    event_answer_text = json_texts["admin_cannot_answer_text"]
-            else:
-                event_answer_text = json_texts["answer_blocked_text"]
+                        temp_info.members_answered_on_quiz_right.append(current_user_id)
+                        self.__members_quiz_answers_handler.debug(f"Пользователь {current_user_id} добавлен " +
+                                                                  "в список успешно ответивших.")
+                        temp_info.members_answered_on_quiz.append(current_user_id)
+                        self.__parent.temp_info = temp_info
 
-            self._vk_session.method("messages.sendMessageEventAnswer", {
-                "event_id": current_event_id,
-                "user_id": current_user_id,
-                "peer_id": 2000000000 + self._bot_config["Chat_for_work_ID"],
-                "event_data": json.dumps({
-                    "type": "show_snackbar",
-                    "text": event_answer_text
+                raise HandlerException("answer_got_text")
+
+            except HandlerException as exc:
+                self._vk_session.method("messages.sendMessageEventAnswer", {
+                    "event_id": current_event_id,
+                    "user_id": current_user_id,
+                    "peer_id": Consts.PEER_ID_ADDITION_INT + self._bot_config["chat_for_work_id"],
+                    "event_data": json.dumps({
+                        "type": "show_snackbar",
+                        "text": texts_for_messages[str(exc)]
+                    })
                 })
-            })
-            self.__members_quiz_answers_handler.debug(f"Пользователь {current_user_id} получил ответ " +
-                                                      "на Callback-событие.\n")
+                self.__members_quiz_answers_handler.debug(f"Пользователь {current_user_id} получил ответ " +
+                                                          "на Callback-событие.\n")

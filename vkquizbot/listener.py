@@ -38,6 +38,7 @@ from vk_api.bot_longpoll import VkBotEventType
 
 # Модули бота
 from .utils import UtilsInitLongpoll, ErrorNotifier
+from .consts import Consts
 
 
 class Listener(UtilsInitLongpoll):
@@ -76,7 +77,7 @@ class Listener(UtilsInitLongpoll):
         :return: ничего (None).
         """
         self.__listener_logger.debug(f"Экземпляр класса {self.__class__.__name__} удален сборщиком мусора." +
-                                     f"\n{'=' * 30}[Конец логгирования]{'=' * 30}")
+                                     Consts.END_OF_LOGS_LINE)
 
     @ErrorNotifier.notify
     def main_listener(self) -> None:
@@ -97,7 +98,7 @@ class Listener(UtilsInitLongpoll):
                                                                                   event.user_id],
                                  name="MainHandlerThread").start()
                 self.__main_listener_logger.debug("Метод 'main_listener' вызвал метод 'main_listener_handler'.\n" +
-                                                  '\t' * 9 + f" Текст сообщения - '{user_message}'\n")
+                                                  f"{Consts.TAB_SPACE_9}Текст сообщения - '{user_message}'\n")
 
     @ErrorNotifier.notify
     def bot_answers_listener(self) -> None:
@@ -118,7 +119,8 @@ class Listener(UtilsInitLongpoll):
                                  name="BotQuestionMessagesHandlerThread").start()
                 self.__bot_answers_listener_logger.debug("Метод 'bot_answers_listener' вызвал метод " +
                                                          "'bot_question_messages_handler'.\n" +
-                                                         '\t' * 10 + f"  Информация о сообщении - '{message_info}'\n")
+                                                         f"{Consts.TAB_SPACE_9}Информация о сообщении - " +
+                                                         f"'{message_info}'\n")
 
     @ErrorNotifier.notify
     def members_quiz_answers_listener(self) -> None:
