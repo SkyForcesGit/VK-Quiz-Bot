@@ -16,6 +16,10 @@
 ⌊__ attachment_upload
         Данный метод отвечает за загрузку вложений для вопросов викторины на сервера VK.
 
+⌊__ template
+        Данный метод осуществляет функцию подстановки передаваемых значений в выбранное
+        шаблонное сообщение.
+
 ⌊__ keyboard_build
         Данный метод отвечает за построение клавиатуры и возвращение ее методу, запросившему
         создание клавиатуры.
@@ -35,6 +39,7 @@
 # Стандартная библиотека
 import json
 import random
+import re
 
 # Сторонние библиотеки
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
@@ -57,6 +62,7 @@ class Messenger(UtilsInitMessage):
 
     Список публичных методов:
     | attachment_upload
+    | template
     | keyboard_build
     | send_message
     | pin_message
@@ -92,8 +98,7 @@ class Messenger(UtilsInitMessage):
         """
         self.__messenger_logger.debug("Метод 'attachment_uploader' запущен.")
 
-        temp_info = self.__parent.temp_info
-        list_to_load = "questions_list" if not temp_info.blitz_start else "blitz_questions_list"
+        list_to_load = "questions_list" if not self.__parent.temp_info.blitz_start else "blitz_questions_list"
         questions_list = self.__parent.data_manager.load_json(list_to_load, self.__messenger_logger)
         attachment = questions_list[question_number]["attachment"]
         attachment_to_load = str()
@@ -109,6 +114,35 @@ class Messenger(UtilsInitMessage):
                                       f"Тип - '{questions_list[question_number]['attach_type']}'\n")
 
         return attachment_to_load
+
+    @ErrorNotifier.notify
+    def template(self, text: str, **kwargs) -> str:
+        """
+        Данный метод осуществляет функцию подстановки передаваемых значений в выбранное
+        шаблонное сообщение и возвращает уже отформатированный текст.
+
+        :param text: заголовок для сообщения из 'texts_for_questions.json', с которым связан текст
+        необходимого сообщения.
+        :param kwargs: группа именованных аргументов, передающая в метод необходимые данные для
+        подстановки в поля сообщения. Если для поля не будет найдено ни одного соответствия среди
+        имен аргументов, то поле заполнится знаками вопроса.
+        :return: строка с отформатированным текстом.
+        """
+        def check(word):
+            return "?" * (len(word) - 2) if re.match(r"[A-Z]?[A-Z0-9_]+", word) else word
+
+        text_msg = self.__parent.texts_for_msgs[text]
+        output = []
+
+        for part in text_msg.split(" "):
+            if re.search(fr"{Consts.VAR_BORDER}[A-Z]?[A-Z0-9_]+{Consts.VAR_BORDER}", part):
+                if any(x in kwargs for x in part.split(Consts.VAR_BORDER)):
+                    part = ''.join(str(kwargs[x]) if x in kwargs else check(x) for x in part.split(Consts.VAR_BORDER))
+            else:
+                part = ''.join(str(check(x)) for x in part.split(Consts.VAR_BORDER))
+            output.append(part)
+
+        return ' '.join(output)
 
     @ErrorNotifier.notify
     def keyboard_build(self, keyboard_config: dict[str, bool | list | int],

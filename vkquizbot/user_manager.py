@@ -19,7 +19,7 @@
 ⌊__ kick_user
         Данный метод исключает участника с указанным ID страницы VK из беседы.
 
-⌊__ get_user_name
+⌊__ get_name
         Данный метод получает и возвращает имя пользователя с указанным ID страницы VK.
 
 Подробную информацию о методах и классах ищите в документации к непосредственно им.
@@ -45,7 +45,7 @@ class UserManager(UtilsInitVKAPI):
     Список публичных методов:
     | get_chat
     | kick_user
-    | get_user_name
+    | get_name
     """
     @ErrorNotifier.notify
     def __init__(self, parent) -> None:
@@ -110,7 +110,7 @@ class UserManager(UtilsInitVKAPI):
                                                                             "reply": raw_info[1]})
 
     @ErrorNotifier.notify
-    def get_user_name(self, user_id: int) -> str:
+    def get_name(self, user_id: int) -> str:
         """
         Данный метод получает и возвращает имя пользователя с указанным ID страницы VK.
 
@@ -136,9 +136,7 @@ class UserManager(UtilsInitVKAPI):
         """
         self.__user_manager_logger.debug("Метод 'kick_all_users' запущен.")
 
-        temp_info = self.__parent.temp_info
-
-        for user_id in temp_info.members_vk_page_ids:
+        for user_id in self.__parent.temp_info.members_vk_page_ids:
             self.kick_user(user_id)
 
         self.__user_manager_logger.debug("Метод 'kick_all_users' успешно завершил работу.")
@@ -153,10 +151,7 @@ class UserManager(UtilsInitVKAPI):
         """
         self.__user_manager_logger.debug("Метод 'kick_user' запущен.")
 
-        temp_info = self.__parent.temp_info
-        temp_info.members_vk_page_ids.remove(member_id)
-        self.__parent.temp_info = temp_info
-
+        self.__parent.temp_info.members_vk_page_ids.remove(member_id)
         self._vk_session.method("messages.removeChatUser", {
             "chat_id": self._bot_config["chat_for_work_id"],
             "user_id": member_id,
