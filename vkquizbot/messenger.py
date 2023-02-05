@@ -128,21 +128,17 @@ class Messenger(UtilsInitMessage):
         имен аргументов, то поле заполнится знаками вопроса.
         :return: строка с отформатированным текстом.
         """
-        def check(word):
-            return "?" * (len(word) - 2) if re.match(r"[A-Z]?[A-Z0-9_]+", word) else word
-
         text_msg = self.__parent.texts_for_msgs[text]
-        output = []
 
-        for part in text_msg.split(" "):
-            if re.search(fr"{Consts.VAR_BORDER}[A-Z]?[A-Z0-9_]+{Consts.VAR_BORDER}", part):
-                if any(x in kwargs for x in part.split(Consts.VAR_BORDER)):
-                    part = ''.join(str(kwargs[x]) if x in kwargs else check(x) for x in part.split(Consts.VAR_BORDER))
-            else:
-                part = ''.join(str(check(x)) for x in part.split(Consts.VAR_BORDER))
-            output.append(part)
+        if founds := re.findall(fr"{Consts.VAR_BORDER}[A-Za-z0-9_]+{Consts.VAR_BORDER}", text_msg):
+            for found in founds:
+                found_unborder = found.replace(Consts.VAR_BORDER, "")
+                if found_unborder in kwargs:
+                    text_msg = text_msg.replace(found, str(kwargs[found_unborder]))
+                else:
+                    text_msg = text_msg.replace(found, "?" * len(found_unborder))
 
-        return ' '.join(output)
+        return text_msg
 
     @ErrorNotifier.notify
     def keyboard_build(self, keyboard_config: dict[str, bool | list | int],
