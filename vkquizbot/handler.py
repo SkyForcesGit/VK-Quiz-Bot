@@ -1,7 +1,7 @@
 # Package name: vkquizbot
 # Module name: handler.py
 # Author(s): SkyForces
-# Modification date: January 2023
+# Modification date: February 2023
 # License: MIT License, read 'LICENSE.txt'
 # Copyright (c) 2023, SkyForces and Contributors
 
@@ -82,6 +82,8 @@ class Handler(UtilsInitVKAPI):
         self.__parent = parent
         self.__handler_logger, self.__main_handler_logger, self.__bot_question_messages_handler,\
             self.__members_quiz_answers_handler = self.__parent.logger.get_multiple_loggers("handlers")
+        self.__texts_for_messages = self.__parent.data_manager.load_json("texts_for_messages",
+                                                                         self.__members_quiz_answers_handler)
         super().__init__()
 
         self.__handler_logger.debug("Токен VK для работы бота получен.")
@@ -266,8 +268,6 @@ class Handler(UtilsInitVKAPI):
         self.__members_quiz_answers_handler.debug("Метод 'members_answers_handler' запущен.")
 
         with self._locker:
-            texts_for_messages = self.__parent.data_manager.load_json("texts_for_messages",
-                                                                      self.__members_quiz_answers_handler)
             current_user_id = event_data["object"]["user_id"]
             current_payload = event_data["object"]["payload"]["answer"]
             current_event_id = event_data["object"]["event_id"]
@@ -286,18 +286,20 @@ class Handler(UtilsInitVKAPI):
 
                 if current_payload:
                     if self._bot_config["quiz_mode"] == "Score":
-                        if str(current_user_id) not in list(self.__parent.temp_info.members_scores.keys()):
-                            self.__parent.temp_info.members_scores.update({current_user_id: 1})
+                        if str(current_user_id) not in self.__parent.temp_info.members_scores:
+                            self.__parent.temp_info.members_scores.update({str(current_user_id): 1})
                         else:
-                            self.__parent.temp_info.members_scores[str(current_user_id)] += 1
+                            self.__parent.temp_info.members_scores[str(current_user_id)] = self.__parent.temp_info \
+                                .members_scores.get(str(current_user_id), 0) + 1
+
                         self.__members_quiz_answers_handler.debug(f"Пользователю {current_user_id} успешно " +
                                                                   "начислен балл.")
                     else:
                         self.__parent.temp_info.members_answered_on_quiz_right.append(current_user_id)
                         self.__members_quiz_answers_handler.debug(f"Пользователь {current_user_id} добавлен " +
                                                                   "в список успешно ответивших.")
-                        self.__parent.temp_info.members_answered_on_quiz.append(current_user_id)
 
+                self.__parent.temp_info.members_answered_on_quiz.append(current_user_id)
                 raise HandlerException("answer_got_text")
 
             except HandlerException as exc:
@@ -307,7 +309,7 @@ class Handler(UtilsInitVKAPI):
                     "peer_id": Consts.PEER_ID_ADDITION_INT + self._bot_config["chat_for_work_id"],
                     "event_data": json.dumps({
                         "type": "show_snackbar",
-                        "text": texts_for_messages[str(exc)]
+                        "text": self.__texts_for_messages[str(exc)]
                     })
                 })
                 self.__members_quiz_answers_handler.debug(f"Пользователь {current_user_id} получил ответ " +

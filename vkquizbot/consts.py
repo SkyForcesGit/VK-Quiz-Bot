@@ -1,7 +1,7 @@
 # Package name: vkquizbot
 # Module name: consts.py
 # Author(s): SkyForces
-# Modification date: January 2023
+# Modification date: February 2023
 # License: MIT License, read 'LICENSE.txt'
 # Copyright (c) 2023, SkyForces and Contributors
 
@@ -34,6 +34,7 @@ class Consts:
     | QUIZ_TIME_DELAY_SAMPLE
     | MEMBER_QUANT_TO_KEEP_BLITZ
     | мMEMBERS_FINISH_BOUND
+    | VAR_BORDER
     """
     TAB_SPACE_6 = '\t' * 6
     TAB_SPACE_9 = '\t' * 9

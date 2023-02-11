@@ -1,7 +1,7 @@
 # Package name: vkquizbot
 # Module name: quiz_manager.py
 # Author(s): SkyForces
-# Modification date: January 2023
+# Modification date: February 2023
 # License: MIT License, read 'LICENSE.txt'
 # Copyright (c) 2023, SkyForces and Contributors
 
@@ -50,8 +50,8 @@
 import time
 import random
 import os
-import sys
 import threading
+from datetime import datetime
 from typing import Any, Callable
 
 # Сторонние библиотеки
@@ -94,7 +94,7 @@ class QuizManager(UtilsInitDefault):
         super().__init__()
 
         self.__dump_data = self.__save_state("save_state")
-        self.__seed = sys.maxsize if self._bot_config["seed"] is None else self._bot_config["seed"]
+        self.__seed = int(datetime.now().timestamp()) if self._bot_config["seed"] is None else self._bot_config["seed"]
 
         if self.__dump_data is not None:
             self.__parent.messenger.unpin_message()
@@ -171,11 +171,14 @@ class QuizManager(UtilsInitDefault):
         try:
             if self._bot_config["quiz_mode"] == "Score":
                 score_dict = self.__parent.temp_info.members_scores
-                max_score = max(score_dict.values())
+                max_score, min_score = max(score_dict.values()), min(score_dict.values())
                 winner_id = list(score_dict.keys())[list(score_dict.values()).index(max_score)]
-                winner_name = self.__parent.user_manager.get_name(winner_id)
+                min_score_member_id = list(score_dict.keys())[list(score_dict.values()).index(min_score)]
+                winner_name = self.__parent.user_manager.get_name(int(winner_id))
+                min_score_member = self.__parent.user_manager.get_name(int(min_score_member_id))
                 template_1 = self.__parent.messenger.template("winner_score_text", WINNER_NAME=winner_name,
-                                                              MAX_SCORE=max_score)
+                                                              MAX_SCORE=max_score, MIN_SCORE=min_score,
+                                                              MIN_SCORE_MEMBER=min_score_member)
 
                 self.__parent.messenger.send_message(template_1, {"empty_keyboard": True})
             else:
@@ -385,6 +388,7 @@ class QuizManager(UtilsInitDefault):
             self.__parent.answer_block = False
 
             if not self.__quiz_question_countdown(self.__parent.temp_info):
+                self.__parent.messenger.send_message("stop_quiz_text")
                 return None
 
             self.__parent.answer_block = True

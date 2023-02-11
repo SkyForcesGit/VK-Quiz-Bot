@@ -1,7 +1,7 @@
 # Package name: vkquizbot
 # Module name: temp_info.py
 # Author(s): SkyForces
-# Modification date: January 2023
+# Modification date: February 2023
 # License: MIT License, read 'LICENSE.txt'
 # Copyright (c) 2023, SkyForces and Contributors
 

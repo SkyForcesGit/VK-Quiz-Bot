@@ -145,10 +145,8 @@ class ErrorNotifier:
 
         :return: ничего (None).
         """
-        current_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-
         for flag in [file.strip(".flag") for file in os.listdir("dump/") if file.endswith(".flag")]:
-            if flag.split("_at_")[1] < current_time:
+            if flag.split("_at_")[1] < datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'):
                 os.remove(f"dump/{flag}.flag")
 
     # pylint: disable=broad-except

@@ -1,7 +1,7 @@
 # Package name: vkquizbot
 # Module name: data_manager.py
 # Author(s): SkyForces
-# Modification date: January 2023
+# Modification date: February 2023
 # License: MIT License, read 'LICENSE.txt'
 # Copyright (c) 2023, SkyForces and Contributors
 
@@ -66,7 +66,6 @@ class DataManager(UtilsInitDefault):
     | pickle_dump
     | pickle_load
     """
-
     def __init__(self, parent):
         self.__parent = parent
         super().__init__()
