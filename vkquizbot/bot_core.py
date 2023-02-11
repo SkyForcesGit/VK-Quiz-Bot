@@ -1,7 +1,7 @@
 # Package name: vkquizbot
 # Module name: bot_core.py
 # Author(s): SkyForces
-# Modification date: January 2023
+# Modification date: February 2023
 # License: MIT License, read 'LICENSE.txt'
 # Copyright (c) 2023, SkyForces and Contributors
 
@@ -30,11 +30,11 @@
 import threading
 import os
 import json
-import shutil
 import datetime
 from zipfile import ZipFile
 
 # Модули бота
+from .temp_info import TempInfo
 from .console import Console
 from .handler import Handler
 from .listener import Listener
@@ -70,12 +70,13 @@ class BotCore:
     | quiz_manager
     | quiz_manager
     | answer_block
+    | texts_for_msgs
+    | temp_info
     | stop_event
     | quiz_thread
     """
     def __init__(self) -> None:
         self.__data_check()
-        shutil.copyfile("dump/temp_info.json", "data/temp_info.json")
 
         dir_name = "logs/"
 
@@ -93,13 +94,18 @@ class BotCore:
         else:
             os.mkdir(dir_name)
 
+        if "dump" not in os.listdir():
+            os.mkdir("dump/")
+
         self._answer_block = True
 
         self._stop_event = threading.Event()
         self._quiz_thread = threading.Thread(target=None)
 
+        self._temp_info = TempInfo()
         self._logger = Logger()
         self._data_manager = DataManager(self)
+        self._texts_for_msgs = self._data_manager.load_json("texts_for_messages")
         self._console = Console(self)
         self._handler = Handler(self)
         self._listener = Listener(self)
@@ -121,46 +127,53 @@ class BotCore:
         with open("data/bot_config.json", mode="r", encoding="utf-8") as __bot_config:
             __bot_config = json.load(__bot_config)
 
-        if not isinstance(__bot_config["VK_API_community_Access_Key"], str):
+        if not isinstance(__bot_config["vk_api_community_access_key"], str):
             raise TypeError("Ключ VK API должен быть строкой.")
 
-        if isinstance(__bot_config["Group_ID"], int):
-            if __bot_config["Group_ID"] < 0:
-                raise ValueError("ID группы должен быть положительным числом.")
+        if isinstance(__bot_config["group_id"], int):
+            if __bot_config["group_id"] <= 0:
+                raise ValueError("ID группы должен быть положительным числом, не равным нулю.")
         else:
             raise TypeError("ID группы должен иметь тип 'int'.")
 
-        if isinstance(__bot_config["Lead_Admin_VK_ID"], int):
-            if __bot_config["Lead_Admin_VK_ID"] < 0:
-                raise ValueError("ID администратора бота должен быть положительным числом.")
+        if isinstance(__bot_config["lead_admin_vk_id"], int):
+            if __bot_config["lead_admin_vk_id"] <= 0:
+                raise ValueError("ID администратора бота должен быть положительным числом, не равным нулю.")
         else:
             raise TypeError("ID администратора бота должен иметь тип 'int'.")
 
-        if isinstance(__bot_config["Chat_for_work_ID"], int):
-            if __bot_config["Chat_for_work_ID"] < 0:
-                raise ValueError("ID рабочего чата должен быть положительным числом.")
+        if isinstance(__bot_config["chat_for_work_id"], int):
+            if __bot_config["chat_for_work_id"] <= 0:
+                raise ValueError("ID рабочего чата должен быть положительным числом, не равным нулю.")
         else:
             raise TypeError("ID рабочего чата должен иметь тип 'int'.")
 
-        if not __bot_config["Quiz_mode"] in ["Normal", "Blitz", "Score"]:
+        if not __bot_config["quiz_mode"] in ["Normal", "Blitz", "Score"]:
             raise ValueError("Бот работает только в двух режимах викторины: 'Normal', 'Score' и 'Blitz'.")
 
-        if isinstance(__bot_config["Time_on_quiz_round"], int | float):
-            if __bot_config["Time_on_quiz_round"] < 0:
-                raise ValueError("Количество времени на раунд викторины должно быть положительным числом.")
+        if isinstance(__bot_config["time_on_quiz_round"], int | float):
+            if __bot_config["time_on_quiz_round"] <= 0:
+                raise ValueError("Количество времени на раунд викторины должно быть положительным числом, " +
+                                 "не равным нулю.")
         else:
             raise TypeError("Количество времени на раунд викторины должно иметь тип 'int' или 'float'.")
 
-        if not isinstance(__bot_config["Random_selection_for_quiz_questions"], bool):
+        if not isinstance(__bot_config["random_selection_for_quiz_questions"], bool):
             raise TypeError("Значение параметра рандомного выбора вопросов должно иметь тип 'bool'.")
 
-        if not isinstance(__bot_config["Ignore_save_state"], bool):
+        if isinstance(__bot_config["seed"], int | None):
+            if isinstance(__bot_config["seed"], int) and __bot_config["seed"] < 0:
+                raise ValueError("Сид для викторины должен быть положительным числом или равен нулю.")
+        else:
+            raise TypeError("Значение параметра сида для викторины должно иметь тип 'int' или 'None' ('null' в JSON).")
+
+        if not isinstance(__bot_config["ignore_save_state"], bool):
             raise TypeError("Значение параметра игнорирования точек восстановления должно иметь тип 'bool'.")
 
-        if not isinstance(__bot_config["Force_load_save_state"], bool):
+        if not isinstance(__bot_config["force_load_save_state"], bool):
             raise TypeError("Значение параметра форсированной загрузки точки восстановления должно иметь тип 'bool'.")
 
-        if not isinstance(__bot_config["Debug_mode"], bool):
+        if not isinstance(__bot_config["debug_mode"], bool):
             raise TypeError("Значение параметра использования дебаг-режима должно иметь тип 'bool'.")
 
     def finalize(self) -> None:
@@ -175,13 +188,19 @@ class BotCore:
 
         self._quiz_manager.save_state_create()
 
-        os.remove("data/temp_info.json")
-
     # A lot of properties, nothing interesting.
     # pylint: disable=missing-function-docstring
     @property
+    def texts_for_msgs(self) -> dict:
+        return self._texts_for_msgs
+
+    @property
     def answer_block(self) -> bool:
         return self._answer_block
+
+    @property
+    def temp_info(self) -> TempInfo:
+        return self._temp_info
 
     @property
     def logger(self) -> Logger:
@@ -222,6 +241,10 @@ class BotCore:
     @property
     def quiz_thread(self) -> threading.Thread:
         return self._quiz_thread
+
+    @temp_info.setter
+    def temp_info(self, new_value) -> None:
+        self._temp_info = new_value
 
     @answer_block.setter
     def answer_block(self, new_value: bool) -> None:

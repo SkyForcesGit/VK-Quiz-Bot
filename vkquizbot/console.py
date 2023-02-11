@@ -1,7 +1,7 @@
 # Package name: vkquizbot
 # Module name: console.py
 # Author(s): SkyForces
-# Modification date: January 2023
+# Modification date: February 2023
 # License: MIT License, read 'LICENSE.txt'
 # Copyright (c) 2023, SkyForces and Contributors
 
@@ -35,6 +35,7 @@ import os
 
 # Модули бота
 from .utils import ErrorNotifier
+from .consts import Consts
 
 
 class Console:
@@ -64,7 +65,7 @@ class Console:
         :return: ничего (None).
         """
         self.__console_logger.debug(f"Экземпляр класса {self.__class__.__name__} удален сборщиком мусора." +
-                                    f"\n{'=' * 30}[Конец логгирования]{'=' * 30}")
+                                    Consts.END_OF_LOGS_LINE)
 
     def __start_bot(self) -> None:
         """

@@ -1,7 +1,7 @@
 # Package name: vkquizbot
 # Module name: data_manager.py
 # Author(s): SkyForces
-# Modification date: January 2023
+# Modification date: February 2023
 # License: MIT License, read 'LICENSE.txt'
 # Copyright (c) 2023, SkyForces and Contributors
 
@@ -15,9 +15,6 @@
 
 ⌊__ load_json
         Данный метод загружает JSON-файл.
-
-⌊__ rewrite_json
-        Данный метод осуществляет перезапись JSON-файла.
 
 ⌊__ load_jsons
         Данный метод загружает сразу несколько JSON-файлов.
@@ -49,6 +46,7 @@ import loguru
 
 # Модули бота
 from .utils import ErrorNotifier, UtilsInitDefault
+from .consts import Consts
 
 
 class DataManager(UtilsInitDefault):
@@ -64,12 +62,10 @@ class DataManager(UtilsInitDefault):
 
     Список публичных методов:
     | load_json
-    | rewrite_json
     | load_jsons
     | pickle_dump
     | pickle_load
     """
-
     def __init__(self, parent):
         self.__parent = parent
         super().__init__()
@@ -85,8 +81,8 @@ class DataManager(UtilsInitDefault):
         :except FileNotFoundError: вызывается, если файл не был найден в директории 'data'.
         :return: словарь с данными.
         """
-        if not f"{file_name}.json" in os.listdir("data/"):
-            raise FileNotFoundError("Файл с указанным именем отсутствует в директории 'data'.")
+        if f"{file_name}.json" not in os.listdir("data/"):
+            raise FileNotFoundError(f"Файл '{file_name}' отсутствует в директории 'data'.")
 
         while True:
             try:
@@ -107,7 +103,7 @@ class DataManager(UtilsInitDefault):
                 self.__parent.messenger.send_message(str_, {"to_admin": True})
                 self.__parent.messenger.send_message(traceback.format_exc(), {"to_admin": True})
 
-                if self._bot_config["Debug_mode"]:
+                if self._bot_config["debug_mode"]:
                     playsound.playsound("assets/sounds/critical_stop.wav")
 
                 file_modification_time = os.path.getmtime(f"data/{file_name}.json")
@@ -115,29 +111,8 @@ class DataManager(UtilsInitDefault):
                 while True:
                     if file_modification_time != os.path.getmtime(f"data/{file_name}.json"):
                         break
-
-                    time.sleep(5)
+                    time.sleep(Consts.TIME_DELAY_5)
                 continue
-
-    @staticmethod
-    @ErrorNotifier.notify
-    def rewrite_json(json_info: dict, file_name: str, rewrite_logger: loguru.logger = None) -> None:
-        """
-        Данный статический метод осуществляет перезапись JSON-файла с данными.
-
-        :param json_info: JSON-данные, которые необходимо записать в файл, в формате словаря.
-        :param file_name: имя JSON-файла, который нужно загрузить (Без расширения).
-        :param rewrite_logger: ожидается экземпляр класса loguru.logger.
-        :except FileNotFoundError: вызывается, если файл не был найден в директории 'data'.
-        :return: ничего (None).
-        """
-        if not f"{file_name}.json" in os.listdir("data/"):
-            raise FileNotFoundError("Файл с указанным именем отсутствует в директории 'data'.")
-
-        with open(f"data/{file_name}.json", mode="w", encoding="utf-8") as json_info_write:
-            json.dump(json_info, json_info_write)
-            if rewrite_logger is not None:
-                rewrite_logger.debug(f"JSON-файл '{file_name}' был успешно перезаписан.")
 
     @ErrorNotifier.notify
     def load_jsons(self, file_names_list: list, load_logger: loguru.logger = None) -> list:
