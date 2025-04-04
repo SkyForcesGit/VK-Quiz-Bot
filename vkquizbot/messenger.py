@@ -182,6 +182,13 @@ class Messenger(UtilsInitMessage):
             colors.append(color)
             payloads.append(payload)
 
+        if self._bot_config["quiz_mode"] == "Score":
+            current_keyboard.add_line()
+            current_keyboard.add_callback_button(self.__parent.texts_for_msgs["score_text"],
+                                                 VkKeyboardColor.PRIMARY, {"score": True})
+
+            self.__messenger_logger.debug("Клавиатура создана для режима викторины 'Score'.")
+
         self.__messenger_logger.debug("Клавиатура создана.\n" +
                                       f"{Consts.TAB_SPACE_6}Inline mode = {keyboard_config['inline_mode']},\n" +
                                       f"{Consts.TAB_SPACE_6}One-Time mode = {keyboard_config['onetime_mode']},\n" +
@@ -242,6 +249,7 @@ class Messenger(UtilsInitMessage):
 
         if message_data.get("keyboard") is not None:
             message_data_dict["keyboard"] = message_data["keyboard"].get_keyboard()
+            message_data_dict["payload"] = json.dumps({"is_bot": True, "keyboard": True})
 
             self.__messenger_logger.debug("Будет отправлено сообщение с клавиатурой.")
 

@@ -131,6 +131,14 @@ class QuizManager(UtilsInitDefault):
         self.__quiz_logger.debug(f"Экземпляр класса {self.__class__.__name__} удален сборщиком мусора." +
                                  Consts.END_OF_LOGS_LINE)
 
+    def get_current_question(self) -> dict[str, Any]:
+        """
+        Данный метод возвращает текущий вопрос викторины.
+
+        :return: текущий вопрос викторины в виде словаря.
+        """
+        return self.__questions_list[self.__current_question_number]
+
     @ErrorNotifier.notify
     def __save_state(self, file_name: str) -> None | list[Any]:
         """
@@ -171,19 +179,16 @@ class QuizManager(UtilsInitDefault):
         try:
             if self._bot_config["quiz_mode"] == "Score":
                 score_dict = self.__parent.temp_info.members_scores
-                max_score, min_score = max(score_dict.values()), min(score_dict.values())
-                winner_id = list(score_dict.keys())[list(score_dict.values()).index(max_score)]
-                min_score_member_id = list(score_dict.keys())[list(score_dict.values()).index(min_score)]
-                winner_name = self.__parent.user_manager.get_name(int(winner_id))
-                min_score_member = self.__parent.user_manager.get_name(int(min_score_member_id))
-                template_1 = self.__parent.messenger.template("winner_score_text", WINNER_NAME=winner_name,
-                                                              MAX_SCORE=max_score, MIN_SCORE=min_score,
-                                                              MIN_SCORE_MEMBER=min_score_member)
+                top_members: list[tuple[str, int]] = sorted(score_dict.items(), key=lambda x: x[1], reverse=True)[:3]
 
-                self.__parent.messenger.send_message(template_1, {"empty_keyboard": True})
+                top_members_str = "\n".join(
+                    [f"{self.__parent.user_manager.get_name(int(id_))} – {score} очко(ов)" for id_, score in
+                     top_members])
+                message_template = self.__parent.messenger.template("winner_score_text", TOP_MEMBERS=top_members_str)
+                self.__parent.messenger.send_message(message_template, {"empty_keyboard": True})
             else:
                 winner_name = self.__parent.user_manager.get_name(self.__parent.temp_info["Members_VK_page_IDs"][0])
-                template_2 = self.__parent.messenger.template("winner_score_text", WINNER_NAME=winner_name)
+                template_2 = self.__parent.messenger.template("winner_classic_text", WINNER_NAME=winner_name)
 
                 self.__parent.messenger.send_message(template_2, {"empty_keyboard": True})
             if self._bot_config["debug_mode"]:
@@ -256,8 +261,8 @@ class QuizManager(UtilsInitDefault):
         attachment = self.__parent.messenger.attachment_upload(self.__current_question_number)
         template = self.__parent.messenger.template("question_text", ROUND_COUNTER=self.__round_counter)
 
-        self.__parent.messenger.send_message(template + self.__questions_list[self.__current_question_number] \
-                                             ["message"], {"keyboard": keyboard, "attachment": attachment})
+        self.__parent.messenger.send_message(template + self.__questions_list[self.__current_question_number]
+        ["message"], {"keyboard": keyboard, "attachment": attachment})
         time.sleep(Consts.TIME_DELAY_5)
 
         self.__parent.messenger.pin_message(int(self.__parent.temp_info.current_id_of_latest_quiz_message))
@@ -394,6 +399,8 @@ class QuizManager(UtilsInitDefault):
             self.__parent.answer_block = True
             self.__end_of_time_handler()
             self.__quiz_logger.debug("Итерация метода 'quiz_mainloop' завершена.\n")
+
+        return None
 
     def __end_of_time_handler(self) -> None:
         """
