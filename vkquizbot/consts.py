@@ -33,7 +33,7 @@ class Consts:
     | TIME_DELAY_10
     | QUIZ_TIME_DELAY_SAMPLE
     | MEMBER_QUANT_TO_KEEP_BLITZ
-    | мMEMBERS_FINISH_BOUND
+    | MEMBERS_FINISH_BOUND
     | VAR_BORDER
     """
     TAB_SPACE_6 = '\t' * 6

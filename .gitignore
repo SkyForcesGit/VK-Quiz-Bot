@@ -4,3 +4,4 @@
 /.idea/
 .pylintrc
 /dump/
+/venv/

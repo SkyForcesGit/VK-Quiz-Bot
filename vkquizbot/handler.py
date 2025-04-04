@@ -77,10 +77,11 @@ class Handler(UtilsInitVKAPI):
     | bot_question_messages_handler
     | members_quiz_answers_handler
     """
+
     @ErrorNotifier.notify
     def __init__(self, parent) -> None:
         self.__parent = parent
-        self.__handler_logger, self.__main_handler_logger, self.__bot_question_messages_handler,\
+        self.__handler_logger, self.__main_handler_logger, self.__bot_question_messages_handler, \
             self.__members_quiz_answers_handler = self.__parent.logger.get_multiple_loggers("handlers")
         self.__texts_for_messages = self.__parent.data_manager.load_json("texts_for_messages",
                                                                          self.__members_quiz_answers_handler)
@@ -148,7 +149,7 @@ class Handler(UtilsInitVKAPI):
             self.__main_handler_logger.debug("Метод 'main_handler' вернул значение 'None'.\n" +
                                              f"{Consts.TAB_SPACE_9}Команда пользователя - '/start'\n")
 
-    def __kick_all_handler(self,  raw_info: list, user_id: int) -> None:
+    def __kick_all_handler(self, raw_info: list, user_id: int) -> None:
         """
         Данный приватный метод вызывается 'main_handler' при получении команды '/kick_all' и
         выполняет действия по запуску соответствующего команде метода.
@@ -197,6 +198,31 @@ class Handler(UtilsInitVKAPI):
             self.__main_handler_logger.debug("Команда '/kick' успешно отработана.")
 
     @ErrorNotifier.notify
+    def __stop_handler(self, raw_info: list, user_id: int) -> None:
+        """
+        Данный приватный метод вызывается 'main_handler' при получении команды '/stop' и
+        выполняет действия по запуску соответствующего команде метода.
+
+        :param raw_info: "сырая" информация о сообщении, полученная от 'main_handler'.
+        :param user_id: ID пользователя, отправившего сообщение, полученный от 'main_handler'.
+        :return: ничего (None).
+        """
+        try:
+            if user_id not in self.__parent.temp_info.admin_vk_pages_ids:
+                raise HandlerException("do_not_have_admin_rights_text")
+            if self.__parent.temp_info.start_function_first_start:
+                raise HandlerException("quiz_already_stopped_text")
+
+            self.__parent.temp_info.start_function_first_start = True
+            self.__parent.stop_event.set()
+            if self.__parent.quiz_thread.is_alive():
+                self.__parent.quiz_thread.join()
+            self.__main_handler_logger.debug("Метод 'quiz_mainloop' был завершен.")
+            self.__parent.stop_event.clear()
+        except HandlerException as exc:
+            self.__parent.messenger.send_message(str(exc), {"reply": raw_info[1]})
+
+    @ErrorNotifier.notify
     def main_handler(self, user_message: str, raw_info: list, user_id: int) -> None:
         """
         Данный метод обрабатывает текстовые сообщения от пользователей, пойманные основным
@@ -218,6 +244,7 @@ class Handler(UtilsInitVKAPI):
                     "/start": self.__start_handler,
                     "/kick_all": self.__kick_all_handler,
                     "/kick": self.__kick_handler,
+                    "/stop": self.__stop_handler
                 }
                 handlers[user_message](raw_info, user_id)
             except KeyError:
@@ -238,8 +265,8 @@ class Handler(UtilsInitVKAPI):
         """
         self.__bot_question_messages_handler.debug("Метод 'bot_question_messages_handler' запущен.")
 
-        if dict(bot_answer_data[6]).get("payload") is not None and dict(bot_answer_data[6]).get("keyboard") is not None:
-            if dict(bot_answer_data[6]["keyboard"]).get("buttons") is not None:
+        if dict(bot_answer_data[6]).get("payload") is not None:
+            if json.loads(bot_answer_data[6]["payload"]).get("keyboard") is not None:
                 _current_id_of_message_question = bot_answer_data[1]
 
                 with self._locker:
@@ -268,33 +295,65 @@ class Handler(UtilsInitVKAPI):
         self.__members_quiz_answers_handler.debug("Метод 'members_answers_handler' запущен.")
 
         with self._locker:
-            current_user_id = event_data["object"]["user_id"]
-            current_payload = event_data["object"]["payload"]["answer"]
-            current_event_id = event_data["object"]["event_id"]
-
-            self.__members_quiz_answers_handler.debug(f"Текущий ID пользователя: {current_user_id}\n" +
-                                                      f"{Consts.TAB_SPACE_11}Текущий ID события: {current_event_id}\n" +
-                                                      f"{Consts.TAB_SPACE_11}Текущий пэйлод: {current_payload}")
-
             try:
+                current_user_id = event_data["object"]["user_id"]
+                current_event_id = event_data["object"]["event_id"]
+                if current_user_id in self.__parent.temp_info.admin_vk_pages_ids:
+                    raise HandlerException("admin_cannot_use_text")
+
+                if event_data["object"]["payload"].get("score") is not None:
+                    score_template: str = self.__parent.messenger.template("score_template_text", SCORE=self.__parent
+                                                                           .temp_info.members_scores.get(
+                        str(current_user_id), 0))
+                    self._vk_session.method("messages.sendMessageEventAnswer", {
+                        "event_id": current_event_id,
+                        "user_id": current_user_id,
+                        "peer_id": Consts.PEER_ID_ADDITION_INT + self._bot_config["chat_for_work_id"],
+                        "event_data": json.dumps({
+                            "type": "show_snackbar",
+                            "text": score_template
+                        })
+                    })
+                    return
+
+                current_payload = event_data["object"]["payload"]["answer"]
+
+                self.__members_quiz_answers_handler.debug(f"Текущий ID пользователя: {current_user_id}\n" +
+                                                          f"{Consts.TAB_SPACE_11}Текущий ID события: {current_event_id}\n" +
+                                                          f"{Consts.TAB_SPACE_11}Текущий пэйлод: {current_payload}")
+
                 if self.__parent.answer_block:
                     raise HandlerException("answer_blocked_text")
-                if current_user_id in self.__parent.temp_info.admin_vk_pages_ids:
-                    raise HandlerException("admin_cannot_answer_text")
                 if current_user_id in self.__parent.temp_info.members_answered_on_quiz:
                     raise HandlerException("already_answered_text")
 
-                if current_payload:
-                    if self._bot_config["quiz_mode"] == "Score":
+                if self._bot_config["quiz_mode"] == "Score":
+                    current_question: dict = self.__parent.quiz_manager.get_current_question()
+                    if current_payload:
                         if str(current_user_id) not in self.__parent.temp_info.members_scores:
-                            self.__parent.temp_info.members_scores.update({str(current_user_id): 1})
+                            self.__parent.temp_info.members_scores.update(
+                                {str(current_user_id): current_question["score"]})
                         else:
                             self.__parent.temp_info.members_scores[str(current_user_id)] = self.__parent.temp_info \
-                                .members_scores.get(str(current_user_id), 0) + 1
+                                                                                               .members_scores.get(
+                                str(current_user_id), 0) + current_question["score"]
 
                         self.__members_quiz_answers_handler.debug(f"Пользователю {current_user_id} успешно " +
-                                                                  "начислен балл.")
+                                                                  "начислено {current_question['score']} баллов.")
                     else:
+                        if str(current_user_id) not in self.__parent.temp_info.members_scores:
+                            self.__parent.temp_info.members_scores.update(
+                                {str(current_user_id): -current_question["score"]})
+                        else:
+                            self.__parent.temp_info.members_scores[str(current_user_id)] = self.__parent.temp_info \
+                                                                                               .members_scores.get(
+                                str(current_user_id), 0) - current_question["score"]
+
+                        self.__members_quiz_answers_handler.debug(f"Пользователю {current_user_id} " +
+                                                                  "начислено -{current_question['score']} баллов.")
+
+                else:
+                    if current_payload:
                         self.__parent.temp_info.members_answered_on_quiz_right.append(current_user_id)
                         self.__members_quiz_answers_handler.debug(f"Пользователь {current_user_id} добавлен " +
                                                                   "в список успешно ответивших.")

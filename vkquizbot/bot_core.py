@@ -238,6 +238,10 @@ class BotCore:
     def stop_event(self) -> threading.Event:
         return self._stop_event
 
+    @stop_event.setter
+    def stop_event(self, new_value: threading.Event) -> None:
+        self._stop_event = new_value
+
     @property
     def quiz_thread(self) -> threading.Thread:
         return self._quiz_thread
